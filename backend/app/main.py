@@ -1,5 +1,4 @@
 """FastAPI main application entry point."""
-
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
