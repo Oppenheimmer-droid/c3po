@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReDrive Edu - Mermaid Architecture Diagrams</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8fafc;
+        }
+        h1 { color: #0ea5e9; margin-bottom: 0.5rem; }
+        h2 { color: #1e293b; margin-top: 3rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
+        .subtitle { color: #64748b; margin-bottom: 2rem; }
+        .diagram-section { 
+            background: white; 
+            border-radius: 1rem; 
+            padding: 2rem; 
+            margin: 2rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .mermaid { 
+            display: flex; 
+            justify-content: center; 
+            margin: 2rem 0;
+        }
+        .error { 
+            color: #dc2626; 
+            background: #fef2f2; 
+            padding: 1rem; 
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+        .status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-ok { background: #dcfce7; color: #166534; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        code { background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
+    </style>
+</head>
+<body>
+    <h1>🏫 ReDrive Edu - Architecture Diagrams</h1>
+    <p class="subtitle">Visual documentation of the AI-native educational tutoring platform</p>
+    
+    <div>
+        <span class="status status-ok">✅ Mermaid v10</span>
+        <span class="status status-ok">✅ Rendered successfully</span>
+    </div>
+
+    <h2>1. System Architecture</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+graph TB
+    subgraph Frontend["Frontend"]
+        FE[Next.js 14<br/>React + TypeScript]
+        FE --> |HTTP/REST| API
+    end
+
+    subgraph Backend["FastAPI Backend"]
+        API[API Gateway<br/>FastAPI + Pydantic]
+        API --> Auth[Auth Service<br/>JWT/RBAC]
+        API --> Docs[Document Service<br/>Upload & Process]
+        API --> Chat[RAG Service<br/>Chat & Query]
+        API --> Eval[Evaluation Service<br/>Quiz & Grade]
+        API --> Analytics[Analytics Service<br/>Metrics]
+    end
+
+    subgraph Data["Data Layer"]
+        DB[(PostgreSQL<br/>SQLAlchemy 2.x)]
+        Cache[(Redis<br/>Cache & Queue)]
+        Vectors[(ChromaDB<br/>Vectors)]
+    end
+
+    subgraph Workers["Async Workers"]
+        CW[Celery Workers<br/>Embeddings & OCR]
+    end
+
+    API <--> DB
+    API <--> Cache
+    API <--> Vectors
+    CW --> |Background| Docs
+    CW --> |Background| Vectors
+        </pre>
+    </div>
+
+    <h2>2. Multi-Tenant Isolation</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+graph LR
+    subgraph Tenants["Multi-Tenant Isolation"]
+        T1[Tenant 1<br/>Academy A]
+        T2[Tenant 2<br/>Academy B]
+        T3[Tenant N<br/>Academy N]
+    end
+
+    subgraph Shared["Shared Infrastructure"]
+        API2[FastAPI]
+        DB2[(PostgreSQL)]
+        VEC[(ChromaDB)]
+    end
+
+    T1 --> |tenant_id| API2
+    T2 --> |tenant_id| API2
+    T3 --> |tenant_id| API2
+
+    T1 --> |tenant_a collection| VEC
+    T2 --> |tenant_b collection| VEC
+    T3 --> |tenant_n collection| VEC
+
+    API2 --> DB2
+    API2 --> VEC
+        </pre>
+    </div>
+
+    <h2>3. Document Processing Pipeline</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+flowchart TD
+    Upload[Document Upload<br/>PDF/DOCX/TXT]
+    Validate[Validate File<br/>Size & Format]
+    Extract[Extract Text<br/>OCR if needed]
+    Chunk[Semantic Chunking<br/>Configurable size]
+    Embed[Generate Embeddings<br/>OpenAI text-embedding-3-small]
+    Store[(ChromaDB<br/>With metadata)]
+    Index[Index Complete<br/>Ready for RAG]
+    Error[Error Response]
+
+    Upload --> Validate
+    Validate --> |Valid| Extract
+    Validate --> |Invalid| Error
+    Extract --> Chunk
+    Chunk --> Embed
+    Embed --> Store
+    Store --> Index
+
+    Upload -.-> |Async| Celery[Celery Worker]
+    Celery --> Extract
+        </pre>
+    </div>
+
+    <h2>4. RAG Query Flow (Sequence)</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+sequenceDiagram
+    participant User
+    participant FE as Frontend
+    participant API as FastAPI
+    participant Chroma as ChromaDB
+    participant LLM as OpenAI GPT-4o-mini
+
+    User->>FE: Ask question
+    FE->>API: POST /api/v1/chat/query
+    API->>Chroma: Search similar chunks
+    Chroma-->>API: Relevant context
+    API->>LLM: Query + Context
+    LLM-->>API: Answer with citations
+    API-->>FE: Response + Sources
+    FE-->>User: Display with citations
+        </pre>
+    </div>
+
+    <h2>5. User Roles & Permissions</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+graph TD
+    subgraph Roles["Role-Based Access Control"]
+        SA[superadmin<br/>Platform Admin]
+        AA[academy_admin<br/>Academy Admin]
+        T[teacher<br/>Professor]
+        S[student<br/>Student]
+        P[parent<br/>Parent]
+    end
+
+    SA --> |Manage All| AA
+    AA --> |Manage| T
+    AA --> |Manage| S
+    AA --> |Manage| P
+    T --> |Create| Docs[Documents]
+    T --> |Create| Eval[Evaluations]
+    T --> |View| Analytics[Analytics]
+    S --> |Take| Eval
+    S --> |Chat| Chat[RAG Chat]
+    P --> |View| Progress[Student Progress]
+        </pre>
+    </div>
+
+    <h2>6. Database Schema (ER Diagram)</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+erDiagram
+    TENANT {
+        uuid id PK
+        string name
+        string slug
+        string status
+        timestamp created_at
+    }
+
+    USER {
+        uuid id PK
+        uuid tenant_id FK
+        string email
+        string password_hash
+        string role
+        string first_name
+        string last_name
+        boolean is_active
+        timestamp created_at
+    }
+
+    DOCUMENT {
+        uuid id PK
+        uuid tenant_id FK
+        string title
+        string file_path
+        string status
+        int chunk_count
+        timestamp created_at
+    }
+
+    CHAT_SESSION {
+        uuid id PK
+        uuid tenant_id FK
+        uuid user_id FK
+        string title
+        boolean is_archived
+        timestamp created_at
+    }
+
+    EVALUATION {
+        uuid id PK
+        uuid tenant_id FK
+        uuid document_id FK
+        string title
+        string evaluation_type
+        boolean is_published
+        timestamp created_at
+    }
+
+    ATTEMPT {
+        uuid id PK
+        uuid evaluation_id FK
+        uuid user_id FK
+        timestamp started_at
+        float score
+        boolean passed
+    }
+
+    TENANT ||--o{ USER : has
+    TENANT ||--o{ DOCUMENT : has
+    USER ||--o{ CHAT_SESSION : creates
+    DOCUMENT ||--o{ EVALUATION : generates
+    USER ||--o{ ATTEMPT : makes
+    EVALUATION ||--o{ ATTEMPT : receives
+        </pre>
+    </div>
+
+    <h2>7. Authentication Flow (Sequence)</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+sequenceDiagram
+    participant User
+    participant FE as Frontend
+    participant API as FastAPI
+    participant Redis as Redis
+
+    User->>FE: Login credentials
+    FE->>API: POST /auth/login
+    API->>API: Validate credentials
+    API->>API: Generate JWT tokens
+    API->>Redis: Store refresh token
+    API-->>FE: access_token + refresh_token
+    FE-->>User: Login success
+
+    Note over User,FE: Subsequent requests with JWT
+    FE->>API: Request + access_token
+    API-->>FE: Response
+    API->>API: Check token expiry
+        </pre>
+    </div>
+
+    <h2>8. Technology Stack</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+graph LR
+    subgraph Frontend["Frontend"]
+        TS[TypeScript]
+        NX[Next.js 14]
+        TW[Tailwind CSS]
+        RQ[TanStack Query]
+    end
+
+    subgraph Backend["Backend"]
+        FA[FastAPI]
+        PY[Python 3.11]
+        SA[SQLAlchemy 2.x]
+        PD[Pydantic v2]
+    end
+
+    subgraph AI["AI/ML"]
+        LLM[OpenAI GPT-4o-mini]
+        EMB[text-embedding-3-small]
+        RI[LlamaIndex]
+        CB[ChromaDB]
+    end
+
+    subgraph Infra["Infrastructure"]
+        PG[PostgreSQL]
+        RD[Redis]
+        CL[Celery]
+        DK[Docker]
+    end
+
+    NX --> TS
+    FA --> PY
+    SA --> PG
+    LLM --> EMB
+    RI --> CB
+        </pre>
+    </div>
+
+    <h2>9. Deployment Architecture</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+graph TB
+    subgraph Cloud["Cloud Deployment"]
+        LB[Load Balancer<br/>Railway/Fly.io]
+        BE[Backend<br/>FastAPI Container]
+        FE[Frontend<br/>Next.js Vercel]
+        DB[(PostgreSQL<br/>Managed DB)]
+        RD[(Redis<br/>Upstash)]
+        CH[(ChromaDB<br/>Self-hosted)]
+    end
+
+    LB --> BE
+    LB --> FE
+    BE --> DB
+    BE --> RD
+    BE --> CH
+        </pre>
+    </div>
+
+    <h2>10. Gantt Chart - Performance Targets</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+gantt
+    title Request Latency Targets
+    dateFormat X
+    axisFormat %s ms
+
+    section API
+    Simple API call :0, 300
+    RAG Query :0, 2000
+    Streaming start :0, 500
+
+    section Processing
+    50-page PDF :0, 30000
+    Embeddings :0, 5000
+        </pre>
+    </div>
+
+    <h2>11. Class Diagram - Core Services</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+classDiagram
+    class AuthService {
+        +login(credentials)
+        +register(data)
+        +refresh(token)
+        +logout()
+        +get_current_user()
+    }
+
+    class DocumentService {
+        +upload_document(file, data)
+        +get_documents(filters)
+        +delete_document(id)
+        +process_document(id)
+    }
+
+    class RAGService {
+        +query(question, context)
+        +create_session(data)
+        +send_message(session_id, content)
+        +get_citations(response)
+    }
+
+    class EvaluationService {
+        +create_evaluation(data)
+        +start_attempt(evaluation_id)
+        +submit_answers(attempt_id, answers)
+        +grade_attempt(attempt_id)
+    }
+
+    class AnalyticsService {
+        +get_tenant_overview()
+        +get_student_progress(user_id)
+        +get_usage_stats(days)
+    }
+
+    AuthService --> Database
+    DocumentService --> Database
+    DocumentService --> ChromaDB
+    RAGService --> ChromaDB
+    RAGService --> OpenAI
+    EvaluationService --> Database
+    AnalyticsService --> Database
+        </pre>
+    </div>
+
+    <h2>12. State Diagram - Document Lifecycle</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Pending
+    Pending --> Processing: Upload
+    Processing --> Completed: Success
+    Processing --> Failed: Error
+    Failed --> Processing: Retry
+    Completed --> [*]
+
+    Pending: File uploaded
+    Processing: OCR + Embedding
+    Completed: Indexed & Searchable
+    Failed: Error occurred
+        </pre>
+    </div>
+
+    <h2>13. Pie Chart - Token Usage Distribution</h2>
+    <div class="diagram-section">
+        <pre class="mermaid">
+pie title Token Usage by Feature
+    "Chat/RAG" : 45
+    "Embeddings" : 30
+    "Evaluations" : 15
+    "Other" : 10
+        </pre>
+    </div>
+
+    <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #e2e8f0; color: #64748b; text-align: center;">
+        <p>ReDrive Edu - AI-native Educational Tutoring Platform</p>
+        <p style="font-size: 0.875rem;">Generated with Mermaid.js v10</p>
+    </footer>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#e0f2fe',
+                primaryTextColor: '#0c4a6e',
+                primaryBorderColor: '#0ea5e9',
+                lineColor: '#64748b',
+                secondaryColor: '#dcfce7',
+                tertiaryColor: '#f0fdf4',
+            },
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            sequence: {
+                useMaxWidth: true,
+                diagramMarginX: 50,
+                diagramMarginY: 10
+            }
+        });
+    </script>
+</body>
+</html>
