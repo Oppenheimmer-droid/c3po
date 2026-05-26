@@ -79,7 +79,7 @@ if [ -d "$BACKEND_DIR" ]; then
     pip install -r requirements.txt || true
   fi
   if command -v pytest >/dev/null 2>&1; then
-    pytest -q || echo "Tests fallaron — revisa salida";
+    PYTHONPATH="$BACKEND_DIR" pytest -q || echo "Tests fallaron — revisa salida";
   else
     echo "pytest no encontrado — saltando tests"
   fi
@@ -123,7 +123,7 @@ if [ "$NO_VERCEL" = false ]; then
   if command -v vercel >/dev/null 2>&1; then
     echo "-> Deploy frontend con Vercel"
     pushd "$FRONTEND_DIR" >/dev/null
-    vercel --prod
+    vercel --prod || echo "Vercel deploy falló — revisa token o login"
     popd >/dev/null
   else
     echo "Vercel CLI no encontrado — si usas Vercel, instala 'vercel' o haz deploy manual"
@@ -134,7 +134,7 @@ if [ "$NO_RAILWAY" = false ]; then
   if command -v railway >/dev/null 2>&1; then
     echo "-> Deploy backend con Railway"
     pushd "$BACKEND_DIR" >/dev/null
-    railway up --detach || echo "railway up falló — revisa el CLI"
+    railway up --detach || echo "railway up falló — revisa el CLI o el login"
     popd >/dev/null
   else
     echo "Railway CLI no encontrado — si usas Railway, instala 'railway' o haz deploy manual"
