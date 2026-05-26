@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import String, Text, DateTime, Integer, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+import uuid
 from app.core.database import Base
 
 
@@ -13,9 +14,9 @@ class Subject(Base):
     
     __tablename__ = "subjects"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    tenant_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     code: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., "MATH101"
@@ -35,9 +36,9 @@ class Topic(Base):
     
     __tablename__ = "topics"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    subject_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
+    subject_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -57,18 +58,18 @@ class Document(Base):
     
     __tablename__ = "documents"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    tenant_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    subject_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True
+    subject_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    topic_id: Mapped[Optional[UUID]] = mapped_column(
-        UUID, ForeignKey("topics.id", ondelete="SET NULL"), nullable=True, index=True
+    topic_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("topics.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    uploaded_by: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     
     # File info
@@ -110,12 +111,12 @@ class DocumentChunk(Base):
     
     __tablename__ = "document_chunks"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    document_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    tenant_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     
     # Chunk content

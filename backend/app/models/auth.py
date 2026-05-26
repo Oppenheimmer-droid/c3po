@@ -4,9 +4,10 @@ from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import String, Text, DateTime, Boolean, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from app.core.database import Base
 import enum
+import uuid
 
 
 class UserRole(str, enum.Enum):
@@ -30,7 +31,7 @@ class Tenant(Base):
     
     __tablename__ = "tenants"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     status: Mapped[TenantStatus] = mapped_column(
@@ -53,9 +54,9 @@ class User(Base):
     
     __tablename__ = "users"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    tenant_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -88,9 +89,9 @@ class UserSession(Base):
     
     __tablename__ = "user_sessions"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    user_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     token_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
@@ -109,9 +110,9 @@ class RefreshToken(Base):
     
     __tablename__ = "refresh_tokens"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    user_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     token_hash: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import String, Text, DateTime, Integer, Float, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+import uuid
 from app.core.database import Base
 
 
@@ -13,18 +14,18 @@ class ChatSession(Base):
     
     __tablename__ = "chat_sessions"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    tenant_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    user_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    document_id: Mapped[Optional[UUID]] = mapped_column(
-        UUID, ForeignKey("documents.id", ondelete="SET NULL"), nullable=True, index=True
+    document_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("documents.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    subject_id: Mapped[Optional[UUID]] = mapped_column(
-        UUID, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True
+    subject_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True
     )
     
     # Session info
@@ -55,15 +56,15 @@ class ChatMessage(Base):
     
     __tablename__ = "chat_messages"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    session_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    tenant_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    user_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     
     # Message type
@@ -95,15 +96,15 @@ class ChatInteractionLog(Base):
     
     __tablename__ = "chat_interaction_logs"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    tenant_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default="gen_random_uuid()")
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    user_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    message_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("chat_messages.id", ondelete="CASCADE"), nullable=False, index=True
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("chat_messages.id", ondelete="CASCADE"), nullable=False, index=True
     )
     
     # Retrieval details
