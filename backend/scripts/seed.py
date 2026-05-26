@@ -6,7 +6,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from uuid import uuid4
+from uuid import uuid4, UUID
 from datetime import datetime, timezone
 
 from app.core.database import AsyncSessionLocal, init_db
@@ -19,6 +19,20 @@ from app.models import Evaluation, Question, EvaluationType, QuestionType
 async def seed_tenant_and_users():
     """Create demo tenant with users."""
     async with AsyncSessionLocal() as db:
+        # Create superadmin (platform-wide)
+        superadmin = User(
+            id=uuid4(),
+            tenant_id=None,  # Superadmin has no tenant
+            email="admin@redrive.edu",
+            password_hash=hash_password("admin123"),
+            first_name="Super",
+            last_name="Admin",
+            role=UserRole.SUPERADMIN,
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(superadmin)
+        
         # Create demo tenant
         tenant = Tenant(
             id=uuid4(),
@@ -73,12 +87,13 @@ async def seed_tenant_and_users():
             db.add(student)
         
         await db.commit()
+        print(f"✓ Created superadmin: admin@redrive.edu / admin123")
         print(f"✓ Created tenant: {tenant.slug}")
         print(f"  Admin: admin@demo.com / admin123")
         print(f"  Teacher: teacher@demo.com / teacher123")
         print(f"  Students: student0@demo.com / student123, etc.")
         
-        return tenant.id, admin.id
+        return tenant.id, admin.id, superadmin.id
 
 
 async def seed_subjects(tenant_id: UUID):
@@ -293,7 +308,7 @@ async def main():
     
     # Seed data
     print("\n🌱 Seeding data...")
-    tenant_id, admin_id = await seed_tenant_and_users()
+    tenant_id, admin_id, superadmin_id = await seed_tenant_and_users()
     await seed_subjects(tenant_id)
     doc_id = await seed_demo_document(tenant_id, admin_id)
     await seed_demo_evaluation(tenant_id, doc_id, admin_id)
@@ -302,6 +317,7 @@ async def main():
     print("✅ Seeding complete!")
     print("=" * 60)
     print("\nDemo credentials:")
+    print("  Superadmin (platform): admin@redrive.edu / admin123")
     print("  Admin: admin@demo.com / admin123")
     print("  Teacher: teacher@demo.com / teacher123")
     print("  Student: student0@demo.com / student123")
