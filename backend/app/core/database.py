@@ -8,24 +8,36 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import declarative_base
 
 from app.core.config import settings
+from app.core.base import Base
 
-Base = declarative_base()
+# Determinar URLs
+DATABASE_URL_ASYNC = getattr(settings, "DATABASE_URL", None)
+DATABASE_URL_SYNC = getattr(settings, "DATABASE_URL_SYNC", None)
 
-DATABASE_URL_ASYNC = settings.DATABASE_URL
-DATABASE_URL_SYNC = settings.DATABASE_URL_SYNC
+# Crear engine asíncrono solo si la URL contiene el driver async (asyncpg)
+async_engine = None
+AsyncSessionLocal = None
 
-async_engine = create_async_engine(
-    DATABASE_URL_ASYNC,
-    future=True,
-    echo=False,
-)
+if DATABASE_URL_ASYNC and "asyncpg" in DATABASE_URL_ASYNC:
+    async_engine = create_async_engine(
+        DATABASE_URL_ASYNC,
+        future=True,
+        echo=False,
+    )
 
-AsyncSessionLocal = async_sessionmaker(
-    bind=async_engine,
-    expire_on_commit=False,
-    class_=AsyncSession,
-)
+    AsyncSessionLocal = async_sessionmaker(
+        bind=async_engine,
+        expire_on_commit=False,
+        class_=AsyncSession,
+    )
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    if AsyncSessionLocal is None:
+        raise RuntimeError("Async database not configured. Ensure DATABASE_URL uses an async driver like asyncpg.")
+
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            await session.close()
