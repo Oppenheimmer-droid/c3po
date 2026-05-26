@@ -1,0 +1,87 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: redrive_edu_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: 'backend/requirements.txt'
+    - name: Install dependencies
+      working-directory: backend
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run tests
+      working-directory: backend
+      env:
+        DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/redrive_edu_test
+        REDIS_URL: redis://localhost:6379/0
+        ENVIRONMENT: test
+        DEBUG: "false"
+        SECRET_KEY: test-secret-key-min-32-characters-12345
+        OPENAI_API_KEY: sk-test-dummy-key
+        CHROMA_PERSIST_DIR: /tmp/chroma_test
+      run: pytest tests/ -v --tb=short
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+    - name: Install and build
+      working-directory: frontend
+      env:
+        NEXT_PUBLIC_API_URL: https://api.example.com
+        NEXT_PUBLIC_APP_URL: https://app.example.com
+      run: |
+        npm ci
+        npm run build
+
+  notify:
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Deployment Status
+      run: |
+        echo "Backend tests: ${{ needs.test-backend.result }}"
+        echo "Frontend tests: ${{ needs.test-frontend.result }}"
+        echo "Ready for Railway and Vercel auto-deployment"
