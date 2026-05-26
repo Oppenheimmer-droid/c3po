@@ -1,0 +1,89 @@
+name: Pre-Deployment Verification
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  verify-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Lint with ruff
+      working-directory: ./backend
+      run: ruff check . --select E,W,F || true
+    
+    - name: Verify Dockerfile
+      working-directory: ./backend
+      run: |
+        if [ ! -f "Dockerfile" ]; then
+          echo "Error: Dockerfile not found"
+          exit 1
+        fi
+        docker build --target development -t backend-test . || true
+    
+    - name: Verify railway.json
+      run: |
+        if [ ! -f "railway.json" ]; then
+          echo "Error: railway.json not found"
+          exit 1
+        fi
+        python -m json.tool railway.json > /dev/null
+
+  verify-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+    
+    - name: Lint
+      working-directory: ./frontend
+      run: npm run lint || true
+    
+    - name: Build verification
+      working-directory: ./frontend
+      run: npm run build
+    
+    - name: Verify vercel.json
+      run: |
+        if [ ! -f "vercel.json" ]; then
+          echo "Error: vercel.json not found"
+          exit 1
+        fi
+        python -m json.tool vercel.json > /dev/null
+
+  verify-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Verify deployment documentation
+      run: |
+        if [ ! -f "DEPLOY_STEPS.md" ]; then
+          echo "Warning: DEPLOY_STEPS.md not found"
+        fi

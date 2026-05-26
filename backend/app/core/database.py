@@ -9,30 +9,23 @@ from sqlalchemy.orm import declarative_base
 
 from app.core.config import settings
 
-# Base para los modelos
 Base = declarative_base()
 
-# URL asíncrona, p.ej. postgres+asyncpg://user:pass@host:port/db
 DATABASE_URL_ASYNC = settings.DATABASE_URL_ASYNC
+DATABASE_URL_SYNC = settings.DATABASE_URL_SYNC
 
-# Motor asíncrono
 async_engine = create_async_engine(
     DATABASE_URL_ASYNC,
     future=True,
     echo=False,
 )
 
-# Session factory asíncrona
 AsyncSessionLocal = async_sessionmaker(
     bind=async_engine,
     expire_on_commit=False,
     class_=AsyncSession,
 )
 
-
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+        yield session
