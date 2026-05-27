@@ -3,7 +3,6 @@
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
-import os
 
 
 class Settings(BaseSettings):
@@ -22,9 +21,9 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
 
-    # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/redrive_edu"
-    DATABASE_URL_SYNC: str = "postgresql+psycopg2://postgres:postgres@postgres:5432/redrive_edu"
+    # Database (sin valores por defecto)
+    DATABASE_URL: str
+    DATABASE_URL_SYNC: str
 
     # Redis
     REDIS_URL: str = "redis://redis:6379/0"
@@ -64,15 +63,12 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: list[str] = [
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "https://frontend-oppenheimmer-droids-projects.vercel.app"]
-
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "https://frontend-oppenheimmer-droids-projects.vercel.app"
+    ]
     ALLOW_CREDENTIALS: bool = True
 
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
-
-
-settings = Settings()
