@@ -8,15 +8,16 @@ app = FastAPI(
     version=settings.APP_VERSION,
     debug=settings.DEBUG
 )
-
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=False,   # IMPORTANTE
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# CORS
+    
 
 # Routers
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
