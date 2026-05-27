@@ -64,6 +64,7 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    ALLOW_CREDENTIALS: bool = True
 
     # Logging
     LOG_LEVEL: str = "INFO"
