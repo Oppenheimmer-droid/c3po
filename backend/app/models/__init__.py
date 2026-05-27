@@ -1,3 +1,4 @@
+import uuid
 """All database models."""
 
 from app.core.database import Base
