@@ -1,0 +1,41 @@
+# Ignore all env files everywhere
+.env
+*.env
+**/.env
+**/*.env
+backend/.env
+app/.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv
+venv
+
+# Git
+.git
+.gitignore
+.github
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Test caches
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Node modules
+node_modules/
+npm-debug.log
+
+# OS junk
+.DS_Store
