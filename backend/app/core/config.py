@@ -63,7 +63,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
 
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    CORS_ORIGINS: list[str] = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "https://frontend-oppenheimmer-droids-projects.vercel.app"]
+
     ALLOW_CREDENTIALS: bool = True
 
     # Logging
