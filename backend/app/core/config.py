@@ -1,33 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
-# Dominios permitidos (tu frontend real en Vercel)
-origins = [
-    "http://localhost:3000",
-    "https://frontend-pi-seven-18.vercel.app",
-]
-
-# Middleware de CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,          # Dominios permitidos
-    allow_credentials=True,         # Necesario para cookies / login
-    allow_methods=["*"],            # Permite todos los métodos (POST, GET, OPTIONS…)
-    allow_headers=["*"],            # Permite Content-Type, Authorization, etc.
-)
-
-# Importa tus routers aquí
-from app.api.v1.router import api_router
-app.include_router(api_router, prefix="/api/v1")
-
-# Healthcheck opcional
-@app.get("/")
-def root():
-    return {"status": "ok"}
 
 
 class Settings(BaseSettings):

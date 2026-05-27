@@ -66,3 +66,4 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = "json"
 
 settings = Settings()
+
