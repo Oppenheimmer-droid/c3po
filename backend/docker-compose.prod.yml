@@ -32,8 +32,8 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@postgres:5432/redrive_edu}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - CHROMA_USE_CLOUD=${CHROMA_USE_CLOUD:-true}
       - CHROMA_CLOUD_API_KEY=${CHROMA_CLOUD_API_KEY}
       - CHROMA_CLOUD_HOST=${CHROMA_CLOUD_HOST:-api.trychroma.com}
@@ -69,8 +69,8 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@postgres:5432/redrive_edu}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
       - CHROMA_USE_CLOUD=${CHROMA_USE_CLOUD:-true}
@@ -116,6 +116,7 @@ services:
     depends_on:
       - api
       - frontend
+volumes:
   postgres_data:
   redis_data:
   chroma_data:
