@@ -115,7 +115,8 @@ docker run -d --name redrive-postgres -p 5432:5432 \
 docker run -d --name redrive-redis -p 6379:6379 redis:7-alpine
 
 # ChromaDB
-docker run -d --name redrive-chroma -p 8000:8000 chromadb/chroma
+# Local ChromaDB is optional. For Chroma Cloud, set CHROMA_USE_CLOUD=true and provide CHROMA_CLOUD_API_KEY.
+# docker run -d --name redrive-chroma -p 8000:8000 chromadb/chroma
 
 # Run API
 uvicorn app.main:app --reload
@@ -173,7 +174,14 @@ uvicorn app.main:app --reload
 | `OPENAI_MODEL` | gpt-4o-mini | LLM model |
 | `OPENAI_EMBEDDING_MODEL` | text-embedding-3-small | Embedding model |
 | `SECRET_KEY` | - | JWT signing key (min 32 chars) |
-| `CHROMA_PERSIST_DIR` | ./chroma_data | ChromaDB storage |
+| `CHROMA_USE_CLOUD` | false | Set to `true` to use Chroma Cloud |
+| `CHROMA_CLOUD_API_KEY` | - | Chroma Cloud API key |
+| `CHROMA_CLOUD_HOST` | api.trychroma.com | Chroma Cloud host |
+| `CHROMA_CLOUD_PORT` | 443 | Chroma Cloud port |
+| `CHROMA_CLOUD_ENABLE_SSL` | true | Enable SSL for Chroma Cloud |
+| `CHROMA_CLOUD_TENANT` | default_tenant | Chroma Cloud tenant/database namespace |
+| `CHROMA_CLOUD_DATABASE` | default_database | Chroma Cloud database name |
+| `CHROMA_PERSIST_DIR` | ./chroma_data | Local ChromaDB storage (used only when `CHROMA_USE_CLOUD=false`) |
 
 ## Project Structure
 

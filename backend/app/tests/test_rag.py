@@ -1,10 +1,59 @@
 """Integration tests for RAG pipeline."""
 
+import importlib
+import sys
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-from app.rag.vector_store import VectorStore, EmbeddingService, ChromaManager
+from app.core.config import settings
+
+
+def import_vector_store_module():
+    if "app.rag.vector_store" in sys.modules:
+        del sys.modules["app.rag.vector_store"]
+
+    with patch("chromadb.PersistentClient", return_value=MagicMock()):
+        return importlib.import_module("app.rag.vector_store")
+
+
+vector_store_module = import_vector_store_module()
+VectorStore = vector_store_module.VectorStore
+EmbeddingService = vector_store_module.EmbeddingService
+ChromaManager = vector_store_module.ChromaManager
+
+
+class TestChromaManager:
+    """Test cases for ChromaManager initialization."""
+
+    def test_uses_cloud_client_when_enabled(self, monkeypatch):
+        monkeypatch.setattr(settings, "CHROMA_USE_CLOUD", True)
+        monkeypatch.setattr(settings, "CHROMA_CLOUD_API_KEY", "test-api-key")
+        monkeypatch.setattr(settings, "CHROMA_CLOUD_HOST", "api.trychroma.com")
+        monkeypatch.setattr(settings, "CHROMA_CLOUD_PORT", 443)
+        monkeypatch.setattr(settings, "CHROMA_CLOUD_ENABLE_SSL", True)
+        monkeypatch.setattr(settings, "CHROMA_CLOUD_TENANT", "default_tenant")
+        monkeypatch.setattr(settings, "CHROMA_CLOUD_DATABASE", "default_database")
+
+        from unittest.mock import patch
+
+        ChromaManager._instance = None
+        with patch("app.rag.vector_store.chromadb.CloudClient") as mock_cloud, patch("app.rag.vector_store.chromadb.PersistentClient") as mock_persist:
+            ChromaManager()
+            mock_cloud.assert_called_once()
+            mock_persist.assert_not_called()
+
+    def test_uses_persistent_client_when_cloud_disabled(self, monkeypatch):
+        monkeypatch.setattr(settings, "CHROMA_USE_CLOUD", False)
+        monkeypatch.setattr(settings, "CHROMA_PERSIST_DIR", "/tmp/chroma_data")
+
+        from unittest.mock import patch
+
+        ChromaManager._instance = None
+        with patch("app.rag.vector_store.chromadb.CloudClient") as mock_cloud, patch("app.rag.vector_store.chromadb.PersistentClient") as mock_persist:
+            ChromaManager()
+            mock_persist.assert_called_once()
+            mock_cloud.assert_not_called()
 
 
 class TestEmbeddingService:

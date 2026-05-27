@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
 
     # ChromaDB
+    CHROMA_USE_CLOUD: bool = False
+    CHROMA_CLOUD_API_KEY: Optional[str] = None
+    CHROMA_CLOUD_HOST: str = "api.trychroma.com"
+    CHROMA_CLOUD_PORT: int = 443
+    CHROMA_CLOUD_ENABLE_SSL: bool = True
+    CHROMA_CLOUD_TENANT: Optional[str] = None
+    CHROMA_CLOUD_DATABASE: Optional[str] = None
     CHROMA_PERSIST_DIR: str = "./chroma_data"
 
     # OpenAI

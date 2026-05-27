@@ -26,14 +26,34 @@ class ChromaManager:
     def __init__(self):
         if self._initialized:
             return
-        
-        self._client = chromadb.PersistentClient(
-            path=settings.CHROMA_PERSIST_DIR,
-            settings=Settings(
+
+        if settings.CHROMA_USE_CLOUD:
+            if not settings.CHROMA_CLOUD_API_KEY:
+                raise ValueError("CHROMA_CLOUD_API_KEY is required when CHROMA_USE_CLOUD is enabled")
+
+            cloud_settings = Settings(
                 anonymized_telemetry=False,
                 allow_reset=True,
             )
-        )
+
+            self._client = chromadb.CloudClient(
+                tenant=settings.CHROMA_CLOUD_TENANT,
+                database=settings.CHROMA_CLOUD_DATABASE,
+                api_key=settings.CHROMA_CLOUD_API_KEY,
+                settings=cloud_settings,
+                cloud_host=settings.CHROMA_CLOUD_HOST,
+                cloud_port=settings.CHROMA_CLOUD_PORT,
+                enable_ssl=settings.CHROMA_CLOUD_ENABLE_SSL,
+            )
+        else:
+            self._client = chromadb.PersistentClient(
+                path=settings.CHROMA_PERSIST_DIR,
+                settings=Settings(
+                    anonymized_telemetry=False,
+                    allow_reset=True,
+                )
+            )
+
         self._collections: Dict[str, Any] = {}
         self._initialized = True
     

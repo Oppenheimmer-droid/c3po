@@ -1,11 +1,11 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
 import Cookies from 'js-cookie'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: API_URL,
+  baseURL: API_URL || undefined,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
