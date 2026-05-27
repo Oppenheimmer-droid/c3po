@@ -72,3 +72,7 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
+
+
+#ESTA LÍNEA ES CRÍTICA — SIN ELLA ALEMBIC ROMPE
+settings = Settings()
