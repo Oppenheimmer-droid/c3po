@@ -1,6 +1,3 @@
-# ReDrive Edu - Backend
-# AI-native educational tutoring platform with RAG
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
@@ -74,5 +71,6 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = "json"
 
 
-#ESTA LÍNEA ES CRÍTICA — SIN ELLA ALEMBIC ROMPE
+# ESTA LÍNEA ES CRÍTICA
 settings = Settings()
+
