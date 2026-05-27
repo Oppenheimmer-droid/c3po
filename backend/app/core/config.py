@@ -23,16 +23,16 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/redrive_edu"
-    DATABASE_URL_SYNC: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/redrive_edu"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/redrive_edu"
+    DATABASE_URL_SYNC: str = "postgresql+psycopg2://postgres:postgres@postgres:5432/redrive_edu"
 
     # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
-    CELERY_BROKER_URL: str = "redis://localhost:6379/1"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
+    REDIS_URL: str = "redis://redis:6379/0"
+    CELERY_BROKER_URL: str = "redis://redis:6379/1"
+    CELERY_RESULT_BACKEND: str = "redis://redis:6379/2"
 
     # ChromaDB
-    CHROMA_USE_CLOUD: bool = False
+    CHROMA_USE_CLOUD: bool = True
     CHROMA_CLOUD_API_KEY: Optional[str] = None
     CHROMA_CLOUD_HOST: str = "api.trychroma.com"
     CHROMA_CLOUD_PORT: int = 443
