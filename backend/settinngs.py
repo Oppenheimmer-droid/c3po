@@ -1,38 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
-# Dominios permitidos (tu frontend real en Vercel)
-origins = [
-    "http://localhost:3000",
-    "https://frontend-pi-seven-18.vercel.app",
-]
-
-# Middleware de CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,          # Dominios permitidos
-    allow_credentials=True,         # Necesario para cookies / login
-    allow_methods=["*"],            # Permite todos los métodos (POST, GET, OPTIONS…)
-    allow_headers=["*"],            # Permite Content-Type, Authorization, etc.
-)
-
-# Importa tus routers aquí
-from app.api.v1.router import api_router
-app.include_router(api_router, prefix="/api/v1")
-
-# Healthcheck opcional
-@app.get("/")
-def root():
-    return {"status": "ok"}
-
 
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables."""
-
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -46,7 +15,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
 
-    # Database (sin valores por defecto)
+    # Database
     DATABASE_URL: str
     DATABASE_URL_SYNC: str
 
@@ -89,16 +58,11 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
-        "http://localhost:8000",
-        "https://frontend-oppenheimmer-droids-projects.vercel.app"
+        "https://frontend-pi-seven-18.vercel.app"
     ]
-    ALLOW_CREDENTIALS: bool = True
 
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
 
-
-# ESTA LÍNEA ES CRÍTICA
 settings = Settings()
-
