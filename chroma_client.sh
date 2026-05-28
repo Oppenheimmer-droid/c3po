@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+from chromadb import HttpClient
+
+client = HttpClient(
+    host=settings.CHROMA_HOST,
+    port=settings.CHROMA_PORT,
+    ssl=True,
+    api_version="v2"
+)
+
+
 
 # ============================
 #  CONFIG
