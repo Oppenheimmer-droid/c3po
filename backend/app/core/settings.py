@@ -55,11 +55,8 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
 
-    # CORS — SOLO dominios válidos
-    CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "https://frontend-pi-seven-18.vercel.app"
-    ]
+    # CORS
+    CORS_ORIGINS: list[str] = ["*"]
 
     # Logging
     LOG_LEVEL: str = "INFO"
