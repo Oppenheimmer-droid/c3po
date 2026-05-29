@@ -1,46 +1,43 @@
-import sys
 import os
+import sys
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 from alembic import context
 
 # ---------------------------------------------------------
-# PATH correcto para que Alembic encuentre app/
+# Ajustar PATH para que Alembic encuentre app/
 # ---------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
 # ---------------------------------------------------------
-# Importar Base desde app.models
+# Importar settings y Base
 # ---------------------------------------------------------
+from app.core.config import settings
 from app.models import Base
 
+# ---------------------------------------------------------
+# Configuración Alembic
+# ---------------------------------------------------------
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# ---------------------------------------------------------
-# Metadata de los modelos
-# ---------------------------------------------------------
 target_metadata = Base.metadata
 
 # ---------------------------------------------------------
-# Fix para URLs postgres:// → postgresql://
+# Obtener DATABASE_URL o dummy
 # ---------------------------------------------------------
-def fix_url(url: str) -> str:
-    if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql://", 1)
-    return url
+DATABASE_URL = settings.DATABASE_URL or "postgresql://dummy:dummy@localhost:5432/dummy"
 
 # ---------------------------------------------------------
 # Modo offline
 # ---------------------------------------------------------
 def run_migrations_offline():
-    url = fix_url(config.get_main_option("sqlalchemy.url"))
     context.configure(
-        url=url,
+        url=DATABASE_URL,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -52,16 +49,12 @@ def run_migrations_offline():
 # Modo online
 # ---------------------------------------------------------
 def run_migrations_online():
-    section = config.get_section(config.config_ini_section)
-    section["sqlalchemy.url"] = fix_url(section["sqlalchemy.url"])
-
-    connectable = engine_from_config(
-        section,
-        prefix="sqlalchemy.",
+    engine = create_engine(
+        DATABASE_URL,
         poolclass=pool.NullPool,
     )
 
-    with connectable.connect() as connection:
+    with engine.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
@@ -69,6 +62,9 @@ def run_migrations_online():
         with context.begin_transaction():
             context.run_migrations()
 
+# ---------------------------------------------------------
+# Ejecutar
+# ---------------------------------------------------------
 if context.is_offline_mode():
     run_migrations_offline()
 else:
