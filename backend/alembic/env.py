@@ -2,7 +2,7 @@ import os
 import sys
 from logging.config import fileConfig
 
-from sqlalchemy import create_engine, pool
+from sqlalchemy import engine_from_config, pool, create_engine
 from alembic import context
 
 # ---------------------------------------------------------
@@ -28,43 +28,48 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # ---------------------------------------------------------
-# Obtener DATABASE_URL o dummy
+# Obtener URL real o dummy
 # ---------------------------------------------------------
-DATABASE_URL = settings.DATABASE_URL or "postgresql://dummy:dummy@localhost:5432/dummy"
+DATABASE_URL = os.getenv("DATABASE_URL", None)
+
+if not DATABASE_URL:
+    print("⚠️ WARNING: DATABASE_URL no encontrado. Usando dummy sqlite.")
+    DATABASE_URL = "sqlite:///./dummy.db"
+
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # ---------------------------------------------------------
-# Modo offline
+# Funciones de ejecución
 # ---------------------------------------------------------
 def run_migrations_offline():
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=DATABASE_URL,
+        url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
+
     with context.begin_transaction():
         context.run_migrations()
 
-# ---------------------------------------------------------
-# Modo online
-# ---------------------------------------------------------
+
 def run_migrations_online():
-    engine = create_engine(
-        DATABASE_URL,
+    connectable = create_engine(
+        config.get_main_option("sqlalchemy.url"),
         poolclass=pool.NullPool,
     )
 
-    with engine.connect() as connection:
+    with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
         )
+
         with context.begin_transaction():
             context.run_migrations()
 
-# ---------------------------------------------------------
-# Ejecutar
-# ---------------------------------------------------------
+
 if context.is_offline_mode():
     run_migrations_offline()
 else:
