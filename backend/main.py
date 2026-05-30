@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.settings import settings
 from app.api.v1.router import api_router
-import app.lazy_imports as lazy
+
+import threading, time, requests
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -18,15 +19,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router, prefix=settings.API_V1_PREFIX)
-
 @app.get("/")
 def root():
-    return {"status": "ok", "routers": "loaded"}
-
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
+    return {"status": "ok"}
 
 @app.head("/")
 def root_head():
@@ -44,8 +39,6 @@ def ready():
 def keepalive():
     return {"status": "alive"}
 
-import threading, time, requests
-
 def keep_alive_loop():
     while True:
         try:
@@ -55,3 +48,7 @@ def keep_alive_loop():
         time.sleep(20)
 
 threading.Thread(target=keep_alive_loop, daemon=True).start()
+
+# ⭐⭐ ESTA ES LA LÍNEA CRÍTICA QUE FALTABA ⭐⭐
+app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
