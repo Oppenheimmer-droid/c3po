@@ -1,3 +1,5 @@
+from app.core.tenant import TenantContext, get_tenant_context
+from app.core.tenant import TenantContext, get_tenant_context
 """Evaluation API endpoints."""
 
 from typing import Optional, List
@@ -13,7 +15,7 @@ from app.schemas import (
     EvaluationCreate, EvaluationResponse, QuestionResponse,
     EvaluationAttemptStart, EvaluationAttemptSubmit, EvaluationAttemptResponse,
 )
-from app.repositories import DocumentRepository
+# from app.repositories import DocumentRepository
 
 router = APIRouter(prefix="/evaluations", tags=["Evaluations"])
 

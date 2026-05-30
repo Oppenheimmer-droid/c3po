@@ -79,7 +79,6 @@ async def get_current_user_optional(
         return None
 
 
-class TenantContext:
     """Context holder for current tenant."""
     
     def __init__(self, tenant_id: UUID, user_id: UUID):
@@ -88,50 +87,8 @@ class TenantContext:
         self.user: Optional[User] = None
 
 
-async def get_tenant_context(
-    user: User = Depends(get_current_user),
-) -> TenantContext:
-    """Get tenant context from current user."""
-    ctx = TenantContext(tenant_id=user.tenant_id, user_id=user.id)
-    ctx.user = user
-    return ctx
-
-
-def require_role(*roles: UserRole):
-    """Dependency factory to require specific roles."""
-    async def role_checker(user: User = Depends(get_current_user)) -> User:
-        if user.role not in [r.value for r in roles]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Requires one of roles: {[r.value for r in roles]}",
-            )
-        return user
-    return role_checker
-
-
 def require_tenant():
     """Dependency to ensure request has tenant context."""
-    async def tenant_checker(ctx: TenantContext = Depends(get_tenant_context)) -> TenantContext:
-        if not ctx.tenant_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Tenant context required",
-            )
-        return ctx
-    return tenant_checker
-
-
-# Role-based access decorators
-def roles_required(*roles: str):
-    """Decorator to enforce role requirements on route handlers."""
-    def decorator(func: Callable):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            user = kwargs.get("user")
-            if not user or user.role not in roles:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Requires one of roles: {list(roles)}",
                 )
             return await func(*args, **kwargs)
         return wrapper

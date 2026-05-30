@@ -5,7 +5,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.core.deps import get_current_user, TenantContext, get_tenant_context
+from app.core.deps import get_current_user
+from app.core.tenant import TenantContext, get_tenant_context
 from app.services.auth_service import AuthService
 from app.schemas import (
     LoginRequest, TokenResponse, RefreshRequest,
