@@ -12,7 +12,6 @@ from app.schemas import (
     DocumentResponse, DocumentListResponse, DocumentMetadata,
     DocumentChunkResponse,
 )
-from app.workers.celery_app import process_document_task
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 

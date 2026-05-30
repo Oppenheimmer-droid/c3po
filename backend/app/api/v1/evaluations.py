@@ -14,7 +14,6 @@ from app.schemas import (
     EvaluationAttemptStart, EvaluationAttemptSubmit, EvaluationAttemptResponse,
 )
 from app.repositories import DocumentRepository
-from app.workers.celery_app import generate_evaluation_task
 
 router = APIRouter(prefix="/evaluations", tags=["Evaluations"])
 
