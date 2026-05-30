@@ -72,3 +72,7 @@ echo "==============================================="
 echo " VALIDACIÓN COMPLETADA "
 echo " Si todo está en ✔, ejecuta: railway up"
 echo "==============================================="
+
+
+
+
