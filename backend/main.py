@@ -27,3 +27,15 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+@app.head("/")
+def root_head():
+    return {"status": "ok"}
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
+
+@app.get("/ready")
+def ready():
+    return {"status": "ready"}
