@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from app.models.tenant import Tenant
+from app.models.auth import Tenant
 
 class TenantRepository:
     def __init__(self, db):
