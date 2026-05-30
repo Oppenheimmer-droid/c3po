@@ -1,3 +1,4 @@
+from typing import Any, Dict, List
 from typing import Dict
 """Document processing service for handling uploads and chunking."""
 
