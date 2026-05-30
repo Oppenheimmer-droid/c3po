@@ -1,22 +1,15 @@
-import os
-from chromadb import HttpClient
-from chromadb.config import Settings
+from typing import List, Any
+from llama_index.core import VectorStoreIndex
+from llama_index.core.schema import Document
 
-CHROMA_HOST = os.getenv("CHROMA_HOST")
-CHROMA_PORT = int(os.getenv("CHROMA_PORT", "443"))
+_index = None
 
-client = HttpClient(
-    host=CHROMA_HOST,
-    port=CHROMA_PORT,
-    ssl=True,
-    settings=Settings(chroma_api_impl="rest")
-)
+def init_vector_store(documents: List[Document]):
+    global _index
+    _index = VectorStoreIndex.from_documents(documents)
 
-def get_collection(name="tutor_knowledge"):
-    return client.get_or_create_collection(
-        name=name,
-        metadata={"hnsw:space": "cosine"}
-    )
-
-def retrieval_pipeline():
-    return get_collection()
+def retrieval_pipeline(query: str, top_k: int = 4):
+    if _index is None:
+        return []
+    engine = _index.as_query_engine(similarity_top_k=top_k)
+    return engine.retrieve(query)
