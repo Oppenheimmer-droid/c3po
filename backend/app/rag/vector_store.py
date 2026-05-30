@@ -11,7 +11,6 @@ client = HttpClient(
     host=CHROMA_HOST,
     port=CHROMA_PORT,
     ssl=True,
-    api_version="v2",
     settings=Settings(chroma_api_impl="rest")
 )
 
