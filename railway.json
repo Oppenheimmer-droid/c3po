@@ -3,7 +3,7 @@
     "builder": "dockerfile"
   },
   "deploy": {
-    "startCommand": "uvicorn backend.main:app --host 0.0.0.0 --port 8000",
+    "startCommand": "uvicorn main:app --host 0.0.0.0 --port 8000",
     "healthchecks": {
       "readiness": {
         "command": "curl --fail http://0.0.0.0:8000/ready || exit 1"
