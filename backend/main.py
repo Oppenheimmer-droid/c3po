@@ -39,3 +39,19 @@ def health():
 @app.get("/ready")
 def ready():
     return {"status": "ready"}
+
+@app.get("/keepalive")
+def keepalive():
+    return {"status": "alive"}
+
+import threading, time, requests
+
+def keep_alive_loop():
+    while True:
+        try:
+            requests.get("http://0.0.0.0:8000/keepalive", timeout=2)
+        except:
+            pass
+        time.sleep(20)
+
+threading.Thread(target=keep_alive_loop, daemon=True).start()
