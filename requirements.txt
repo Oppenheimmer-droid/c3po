@@ -1,5 +1,14 @@
-alembic
-fastapi
-uvicorn
-chromadb
-openai
+# C3PO - AI Tutor Platform
+
+# Core
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+
+# RAG & AI
+chromadb>=0.4.0
+openai>=1.0.0
+
+# Utilities
+httpx>=0.27.0
