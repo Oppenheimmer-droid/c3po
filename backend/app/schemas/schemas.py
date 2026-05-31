@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from pydantic import BaseModel, str, ConfigDict, Field
 
 
 # ────────────────────────────────
@@ -52,7 +52,7 @@ class TenantResponse(TenantBase, TimestampMixin):
 
 class UserBase(BaseModel):
     """Base user schema."""
-    email: EmailStr
+    email: str
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     role: str = "student"
@@ -85,7 +85,7 @@ class UserMeResponse(BaseModel):
     """Schema for current user info."""
     model_config = ConfigDict(from_attributes=True)
     id: UUID
-    email: EmailStr
+    email: str
     first_name: str
     last_name: str
     role: str
@@ -99,7 +99,7 @@ class UserMeResponse(BaseModel):
 
 class LoginRequest(BaseModel):
     """Schema for login request."""
-    email: EmailStr
+    email: str
     password: str
 
 
@@ -124,7 +124,7 @@ class ChangePasswordRequest(BaseModel):
 
 class PasswordResetRequest(BaseModel):
     """Schema for requesting password reset."""
-    email: EmailStr
+    email: str
 
 
 class SetPasswordRequest(BaseModel):
