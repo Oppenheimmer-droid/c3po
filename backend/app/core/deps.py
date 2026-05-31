@@ -3,8 +3,10 @@
 from typing import Optional, Callable
 from functools import wraps
 from uuid import UUID
+
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -12,14 +14,16 @@ from app.core.database import get_db
 from app.core.security import verify_access_token
 from app.models import User, UserRole
 
-# HTTP Bearer token scheme
+
+# -----------------------------
+# AUTH SCHEME
+# -----------------------------
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-# ============================================================
-#  AUTH: CURRENT USER
-# ============================================================
-
+# -----------------------------
+# CURRENT USER
+# -----------------------------
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
@@ -81,12 +85,11 @@ async def get_current_user_optional(
         return None
 
 
-# ============================================================
-#  TENANT CONTEXT
-# ============================================================
-
+# -----------------------------
+# TENANT CONTEXT
+# -----------------------------
 class TenantContext:
-    """Contexto del tenant actual."""
+    """Context holder for current tenant."""
     def __init__(self, tenant_id: UUID, user_id: UUID):
         self.tenant_id = tenant_id
         self.user_id = user_id
@@ -96,7 +99,6 @@ class TenantContext:
 async def get_tenant_context(
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ) -> TenantContext:
 
     tenant_header = request.headers.get("X-Tenant-ID")
@@ -104,7 +106,7 @@ async def get_tenant_context(
     if not tenant_header:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing X-Tenant-ID header"
+            detail="Missing X-Tenant-ID header",
         )
 
     try:
@@ -112,21 +114,18 @@ async def get_tenant_context(
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid X-Tenant-ID format"
+            detail="Invalid X-Tenant-ID format",
         )
 
     ctx = TenantContext(tenant_id=tenant_id, user_id=current_user.id)
     ctx.user = current_user
-
     return ctx
 
 
-# ============================================================
-#  ROLE-BASED ACCESS CONTROL
-# ============================================================
-
+# -----------------------------
+# ROLE-BASED ACCESS CONTROL
+# -----------------------------
 def require_role(*allowed_roles: UserRole):
-    """Decorator to enforce role-based access."""
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(
@@ -144,7 +143,6 @@ def require_role(*allowed_roles: UserRole):
     return decorator
 
 
-# Predefined role dependencies
 require_superadmin = require_role(UserRole.SUPERADMIN)
 require_admin_or_teacher = require_role(
     UserRole.SUPERADMIN,
