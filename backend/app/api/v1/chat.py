@@ -1,3 +1,4 @@
+from app.core.tenant import TenantContext, get_tenant_context
 """Chat API endpoints for RAG interactions."""
 
 from typing import Optional, List
@@ -11,7 +12,6 @@ import json
 import logging
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, TenantContext
 from app.services.rag_service_dummy import RAGService
 from app.models import ChatSession, ChatMessage, ChatInteractionLog
 from app.schemas import (
@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 @router.post("/sessions", response_model=ChatSessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_chat_session(
     session_data: ChatSessionCreate,
-    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new chat session."""
@@ -48,7 +47,6 @@ async def create_chat_session(
 async def list_chat_sessions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """List chat sessions for the current user."""
@@ -72,7 +70,6 @@ async def list_chat_sessions(
 @router.get("/sessions/{session_id}", response_model=ChatSessionResponse)
 async def get_chat_session(
     session_id: UUID,
-    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a specific chat session."""
@@ -96,7 +93,6 @@ async def get_chat_session(
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_chat_session(
     session_id: UUID,
-    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a chat session."""
@@ -131,7 +127,6 @@ async def delete_chat_session(
 async def send_message(
     session_id: UUID,
     message_data: MessageCreate,
-    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Send a message and get a response."""
@@ -248,7 +243,6 @@ async def send_message(
 async def get_session_messages(
     session_id: UUID,
     limit: int = Query(50, ge=1, le=100),
-    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Get messages for a chat session."""
@@ -298,7 +292,6 @@ async def query_rag(
     query: str,
     document_ids: Optional[str] = Query(None),  # Comma-separated
     subject_id: Optional[UUID] = Query(None),
-    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Simple RAG query endpoint (no session required)."""
