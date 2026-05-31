@@ -16,14 +16,15 @@ from app.models import User, UserRole
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-# -----------------------------
-# AUTH: CURRENT USER
-# -----------------------------
+# ============================================================
+#  AUTH: CURRENT USER
+# ============================================================
+
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Get the current authenticated user from JWT token."""
+
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -70,7 +71,7 @@ async def get_current_user_optional(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> Optional[User]:
-    """Get the current user if authenticated, otherwise None."""
+
     if not credentials:
         return None
 
@@ -80,47 +81,50 @@ async def get_current_user_optional(
         return None
 
 
-# -----------------------------
-# TENANT CONTEXT
-# -----------------------------
+# ============================================================
+#  TENANT CONTEXT
+# ============================================================
+
 class TenantContext:
-    """Context holder for current tenant."""
+    """Contexto del tenant actual."""
     def __init__(self, tenant_id: UUID, user_id: UUID):
         self.tenant_id = tenant_id
         self.user_id = user_id
         self.user: Optional[User] = None
 
 
-async def get_tenant_id_from_header(request: Request) -> Optional[UUID]:
-    """Extract tenant_id from custom header."""
+async def get_tenant_context(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TenantContext:
+
     tenant_header = request.headers.get("X-Tenant-ID")
-    if tenant_header:
-        try:
-            return UUID(tenant_header)
-        except ValueError:
-            return None
-    return None
+
+    if not tenant_header:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing X-Tenant-ID header"
+        )
+
+    try:
+        tenant_id = UUID(tenant_header)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid X-Tenant-ID format"
+        )
+
+    ctx = TenantContext(tenant_id=tenant_id, user_id=current_user.id)
+    ctx.user = current_user
+
+    return ctx
 
 
-def require_tenant():
-    """Ensure request has tenant context."""
-    async def dependency(
-        tenant_id: Optional[UUID] = Depends(get_tenant_id_from_header),
-        user: User = Depends(get_current_user),
-    ) -> TenantContext:
-        if not tenant_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Missing X-Tenant-ID header",
-            )
-        return TenantContext(tenant_id=tenant_id, user_id=user.id)
+# ============================================================
+#  ROLE-BASED ACCESS CONTROL
+# ============================================================
 
-    return dependency
-
-
-# -----------------------------
-# ROLE-BASED ACCESS CONTROL
-# -----------------------------
 def require_role(*allowed_roles: UserRole):
     """Decorator to enforce role-based access."""
     def decorator(func: Callable):
@@ -149,43 +153,3 @@ require_admin_or_teacher = require_role(
 )
 require_teacher = require_role(UserRole.TEACHER, UserRole.SUPERADMIN)
 require_student = require_role(UserRole.STUDENT)
-# -------------------------------
-# TENANT CONTEXT
-# -------------------------------
-
-class TenantContext:
-    """Contexto del tenant actual."""
-    def __init__(self, tenant_id: UUID, user_id: UUID):
-        self.tenant_id = tenant_id
-        self.user_id = user_id
-        self.user: Optional[User] = None
-
-
-async def get_tenant_context(
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> TenantContext:
-    """
-    Construye el contexto del tenant a partir del header X-Tenant-ID.
-    """
-    tenant_header = request.headers.get("X-Tenant-ID")
-
-    if not tenant_header:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing X-Tenant-ID header"
-        )
-
-    try:
-        tenant_id = UUID(tenant_header)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid X-Tenant-ID format"
-        )
-
-    ctx = TenantContext(tenant_id=tenant_id, user_id=current_user.id)
-    ctx.user = current_user
-
-    return ctx
