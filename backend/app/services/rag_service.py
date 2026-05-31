@@ -2,8 +2,8 @@ class RAGService:
     def __init__(self):
         pass
 
-    def query(self, text: str):
+    async def chat(self, message: str, user_id: str = None):
         return {
-            "answer": f"[MOCK] Respuesta dummy para: {text}",
+            "answer": f"[DUMMY RESPONSE] Recibido: {message}",
             "sources": []
         }
