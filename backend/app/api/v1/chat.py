@@ -12,7 +12,7 @@ import logging
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, TenantContext
-from app.services.rag_service import RAGService
+from app.services.rag_service_dummy import RAGService
 from app.models import ChatSession, ChatMessage, ChatInteractionLog
 from app.schemas import (
     ChatSessionCreate, ChatSessionResponse, MessageCreate, MessageResponse, ChatStreamResponse,
