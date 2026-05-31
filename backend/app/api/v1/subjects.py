@@ -1,5 +1,8 @@
+from backend.app.api.dependencies import get_tenant_context, TenantContext
+from app.api.dependencies import get_tenant_context, TenantContext
 """Subject API endpoints."""
 
+from app.core.dependencies import get_tenant_context, TenantContext
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, Query

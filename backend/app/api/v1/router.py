@@ -1,3 +1,4 @@
+from backend.app.api.dependencies import get_tenant_context, TenantContext
 from app.core.tenant import TenantContext, get_tenant_context
 from fastapi import APIRouter
 
