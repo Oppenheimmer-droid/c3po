@@ -3,10 +3,8 @@
 from typing import Optional, Callable
 from functools import wraps
 from uuid import UUID
-
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -14,21 +12,17 @@ from app.core.database import get_db
 from app.core.security import verify_access_token
 from app.models import User, UserRole
 
-
-# -----------------------------
-# AUTH SCHEME
-# -----------------------------
+# HTTP Bearer token scheme
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
 # -----------------------------
-# CURRENT USER
+# AUTH: CURRENT USER
 # -----------------------------
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -75,7 +69,6 @@ async def get_current_user_optional(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> Optional[User]:
-
     if not credentials:
         return None
 
@@ -96,17 +89,26 @@ class TenantContext:
         self.user: Optional[User] = None
 
 
+async def get_tenant_id_from_header(request: Request) -> Optional[UUID]:
+    tenant_header = request.headers.get("X-Tenant-ID")
+    if tenant_header:
+        try:
+            return UUID(tenant_header)
+        except ValueError:
+            return None
+    return None
+
+
 async def get_tenant_context(
     request: Request,
     current_user: User = Depends(get_current_user),
 ) -> TenantContext:
-
     tenant_header = request.headers.get("X-Tenant-ID")
 
     if not tenant_header:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing X-Tenant-ID header",
+            detail="Missing X-Tenant-ID header"
         )
 
     try:
@@ -114,12 +116,18 @@ async def get_tenant_context(
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid X-Tenant-ID format",
+            detail="Invalid X-Tenant-ID format"
         )
 
     ctx = TenantContext(tenant_id=tenant_id, user_id=current_user.id)
     ctx.user = current_user
     return ctx
+
+
+def require_tenant():
+    async def dependency(ctx: TenantContext = Depends(get_tenant_context)):
+        return ctx
+    return dependency
 
 
 # -----------------------------
