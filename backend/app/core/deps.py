@@ -89,16 +89,6 @@ class TenantContext:
         self.user: Optional[User] = None
 
 
-async def get_tenant_id_from_header(request: Request) -> Optional[UUID]:
-    tenant_header = request.headers.get("X-Tenant-ID")
-    if tenant_header:
-        try:
-            return UUID(tenant_header)
-        except ValueError:
-            return None
-    return None
-
-
 async def get_tenant_context(
     request: Request,
     current_user: User = Depends(get_current_user),
@@ -122,12 +112,6 @@ async def get_tenant_context(
     ctx = TenantContext(tenant_id=tenant_id, user_id=current_user.id)
     ctx.user = current_user
     return ctx
-
-
-def require_tenant():
-    async def dependency(ctx: TenantContext = Depends(get_tenant_context)):
-        return ctx
-    return dependency
 
 
 # -----------------------------
