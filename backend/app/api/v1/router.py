@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from .auth import router as auth_router
+from .auth.routes import router as auth_router
 from .users.routes import router as users_router
 from .chat import router as chat_router
 from .documents import router as documents_router
