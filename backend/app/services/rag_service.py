@@ -4,6 +4,6 @@ class RAGService:
 
     def query(self, text: str):
         return {
-            "answer": "Dummy RAG response",
+            "answer": f"[MOCK] Respuesta dummy para: {text}",
             "sources": []
         }

@@ -1,3 +1,5 @@
-# MODO DUMMY — Vector Store desactivado
 def retrieval_pipeline(query: str):
-    return ["Dummy response: vector store disabled"]
+    return {
+        "chunks": ["[MOCK] chunk 1", "[MOCK] chunk 2"],
+        "embeddings": []
+    }
