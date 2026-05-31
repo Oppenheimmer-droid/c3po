@@ -1,10 +1,12 @@
-# MODO DUMMY – NO USA VECTOR STORE NI CLIENTES EXTERNOS
+# MODO DUMMY ACTIVADO
+# Servicio RAG simulado para permitir que el backend arranque.
+
 class RAGService:
     def __init__(self):
         pass
 
-    async def chat(self, message: str, user_id: str = None):
+    def query(self, text: str):
         return {
-            "answer": f"[DUMMY RESPONSE] Recibido: {message}",
+            "answer": "MODO DUMMY: backend operativo sin RAG real.",
             "sources": []
         }

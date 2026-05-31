@@ -1,7 +1,10 @@
-# VECTOR STORE DUMMY – NO USA HttpClient NI API EXTERNAS
+# MODO DUMMY ACTIVADO
+# Este archivo reemplaza el vector store real para permitir que el backend arranque.
+
 def retrieval_pipeline(query: str):
-    return {
-        "chunks": [],
-        "metadata": {},
-        "debug": "[DUMMY VECTOR STORE]"
-    }
+    return [
+        {
+            "content": "MODO DUMMY: No hay RAG real. Respuesta simulada.",
+            "score": 1.0
+        }
+    ]
