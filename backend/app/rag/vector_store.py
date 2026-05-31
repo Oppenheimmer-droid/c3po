@@ -1,4 +1,7 @@
-# MODO DUMMY ACTIVADO — vector_store deshabilitado temporalmente
-
-def retrieval_pipeline(*args, **kwargs):
-    return []
+# VECTOR STORE DUMMY – NO USA HttpClient NI API EXTERNAS
+def retrieval_pipeline(query: str):
+    return {
+        "chunks": [],
+        "metadata": {},
+        "debug": "[DUMMY VECTOR STORE]"
+    }
