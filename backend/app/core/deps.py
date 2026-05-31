@@ -16,10 +16,9 @@ from app.models import User, UserRole
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-# ============================================================
-#  AUTH: GET CURRENT USER
-# ============================================================
-
+# -----------------------------
+# AUTH: CURRENT USER
+# -----------------------------
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
@@ -81,10 +80,9 @@ async def get_current_user_optional(
         return None
 
 
-# ============================================================
-#  TENANT CONTEXT
-# ============================================================
-
+# -----------------------------
+# TENANT CONTEXT
+# -----------------------------
 class TenantContext:
     """Context holder for current tenant."""
     def __init__(self, tenant_id: UUID, user_id: UUID):
@@ -93,20 +91,46 @@ class TenantContext:
         self.user: Optional[User] = None
 
 
-# ============================================================
-#  ROLE-BASED ACCESS CONTROL
-# ============================================================
+async def get_tenant_id_from_header(request: Request) -> Optional[UUID]:
+    """Extract tenant_id from custom header."""
+    tenant_header = request.headers.get("X-Tenant-ID")
+    if tenant_header:
+        try:
+            return UUID(tenant_header)
+        except ValueError:
+            return None
+    return None
 
-def require_role(*allowed_roles: UserRole) -> Callable:
+
+def require_tenant():
+    """Ensure request has tenant context."""
+    async def dependency(
+        tenant_id: Optional[UUID] = Depends(get_tenant_id_from_header),
+        user: User = Depends(get_current_user),
+    ) -> TenantContext:
+        if not tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing X-Tenant-ID header",
+            )
+        return TenantContext(tenant_id=tenant_id, user_id=user.id)
+
+    return dependency
+
+
+# -----------------------------
+# ROLE-BASED ACCESS CONTROL
+# -----------------------------
+def require_role(*allowed_roles: UserRole):
     """Decorator to enforce role-based access."""
-    def decorator(func):
+    def decorator(func: Callable):
         @wraps(func)
         async def wrapper(
             *args,
-            current_user: User = Depends(get_current_user),
+            user: User = Depends(get_current_user),
             **kwargs
         ):
-            if current_user.role not in allowed_roles:
+            if user.role not in allowed_roles:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Insufficient permissions",
@@ -125,18 +149,3 @@ require_admin_or_teacher = require_role(
 )
 require_teacher = require_role(UserRole.TEACHER, UserRole.SUPERADMIN)
 require_student = require_role(UserRole.STUDENT)
-
-
-# ============================================================
-#  TENANT HEADER EXTRACTOR
-# ============================================================
-
-async def get_tenant_id_from_header(request: Request) -> Optional[UUID]:
-    """Extract tenant_id from custom header."""
-    tenant_header = request.headers.get("X-Tenant-ID")
-    if tenant_header:
-        try:
-            return UUID(tenant_header)
-        except ValueError:
-            return None
-    return None
