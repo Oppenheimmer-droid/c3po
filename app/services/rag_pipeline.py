@@ -1,12 +1,15 @@
-from openai import OpenAI
 import os
 
 def get_openai_client():
     """Get OpenAI client, returns None if no API key available."""
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    if not api_key:
+    try:
+        from openai import OpenAI
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        if not api_key:
+            return None
+        return OpenAI(api_key=api_key)
+    except ImportError:
         return None
-    return OpenAI(api_key=api_key)
 
 def retrieve_context(query, n=4):
     try:

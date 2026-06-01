@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from app.api.roles import router as roles_router
+from app.api.auth import router as auth_router
 from app.services.rag_pipeline import answer_with_role
 from app.core.roles import ROLES
 from pydantic import BaseModel
@@ -24,6 +25,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(roles_router, prefix="/api/v1/roles", tags=["roles"])
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 
 # Healthcheck endpoints
 @app.get("/")
