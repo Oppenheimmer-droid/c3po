@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/store'
 import { authService } from '@/services'
+import { GuestGuard } from '@/components/auth-guard'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -55,6 +56,7 @@ export default function LoginPage() {
   }
 
   return (
+    <GuestGuard>
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-accent-50 p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-card p-8">
@@ -143,5 +145,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+    </GuestGuard>
   )
 }
