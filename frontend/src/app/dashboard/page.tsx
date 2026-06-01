@@ -1,28 +1,83 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store'
 import { getRoleLabel } from '@/lib/utils'
 import { authService } from '@/services'
 
+// Demo credentials for auto-login
+const DEMO_USER = { email: 'test@demo.com', password: 'Test1234' }
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://c3po-production-0c24.up.railway.app'
+
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, isAuthenticated, setLoading } = useAuthStore()
+  const { user, isAuthenticated, setUser, login, setLoading } = useAuthStore()
+  const [autoLoggingIn, setAutoLoggingIn] = useState(false)
+  const [initStarted, setInitStarted] = useState(false)
 
+  // Auto-login if not authenticated
   useEffect(() => {
-    if (!isAuthenticated) {
-      authService.getMe()
-        .then((userData) => {
-          useAuthStore.getState().setUser(userData)
-        })
-        .catch(() => {
-          router.push('/auth/login')
-        })
-        .finally(() => setLoading(false))
+    const initAuth = async () => {
+      if (initStarted) return
+      setInitStarted(true)
+
+      // Check for existing auth
+      if (isAuthenticated && user) return
+
+      // Try to validate existing token
+      try {
+        const tokens = JSON.parse(localStorage.getItem('c3po_tokens') || '{}')
+        if (tokens.access_token) {
+          const userData = await authService.getMe()
+          setUser(userData)
+          return
+        }
+      } catch {
+        localStorage.removeItem('c3po_tokens')
+      }
+
+      // No valid token - auto-login with demo credentials
+      if (!autoLoggingIn) {
+        setAutoLoggingIn(true)
+        try {
+          const loginRes = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(DEMO_USER),
+          })
+          
+          if (loginRes.ok) {
+            const tokens = await loginRes.json()
+            localStorage.setItem('c3po_tokens', JSON.stringify({
+              access_token: tokens.access_token,
+              refresh_token: tokens.refresh_token,
+              expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000,
+            }))
+
+            const userRes = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
+              headers: { 'Authorization': `Bearer ${tokens.access_token}` },
+            })
+            
+            if (userRes.ok) {
+              const userData = await userRes.json()
+              if (userData.tenant_id) localStorage.setItem('c3po_tenant', userData.tenant_id)
+              login(userData, tokens)
+              return
+            }
+          }
+        } catch (e) {
+          console.error('Auto-login failed:', e)
+        }
+        
+        // If all else fails, go to login
+        router.push('/auth/login')
+      }
     }
-  }, [isAuthenticated, router, setLoading])
+
+    initAuth()
+  }, [isAuthenticated, user, autoLoggingIn, initStarted, router, setUser, login])
 
   if (!user) {
     return (
