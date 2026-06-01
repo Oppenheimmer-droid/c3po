@@ -14,20 +14,43 @@ const api: AxiosInstance = axios.create({
 
 // Token management
 export const getAccessToken = (): string | undefined => {
-  return Cookies.get('access_token')
+  if (typeof document !== 'undefined') {
+    const cookies = document.cookie.split(';')
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split('=')
+      if (name === 'access_token') return value
+    }
+  }
+  return undefined
 }
 
 export const getRefreshToken = (): string | undefined => {
-  return Cookies.get('refresh_token')
+  if (typeof document !== 'undefined') {
+    const cookies = document.cookie.split(';')
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split('=')
+      if (name === 'refresh_token') return value
+    }
+  }
+  return undefined
 }
 
 export const setTokens = (tokens: { access_token: string; refresh_token: string }) => {
-  const expiresIn = 7 // days
-  Cookies.set('access_token', tokens.access_token, { expires: expiresIn, secure: true, sameSite: 'strict' })
-  Cookies.set('refresh_token', tokens.refresh_token, { expires: expiresIn, secure: true, sameSite: 'strict' })
+  // Use direct document.cookie for better compatibility
+  if (typeof document !== 'undefined') {
+    document.cookie = `access_token=${tokens.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=lax`
+    document.cookie = `refresh_token=${tokens.refresh_token}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=lax`
+  }
+  // Also use js-cookie as backup
+  Cookies.set('access_token', tokens.access_token, { expires: 7, sameSite: 'lax' })
+  Cookies.set('refresh_token', tokens.refresh_token, { expires: 7, sameSite: 'lax' })
 }
 
 export const clearTokens = () => {
+  if (typeof document !== 'undefined') {
+    document.cookie = 'access_token=; path=/; max-age=0'
+    document.cookie = 'refresh_token=; path=/; max-age=0'
+  }
   Cookies.remove('access_token')
   Cookies.remove('refresh_token')
 }

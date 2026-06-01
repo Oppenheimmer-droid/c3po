@@ -21,12 +21,32 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
+      console.log('Attempting login with:', formData.email)
       const tokens = await authService.login(formData)
+      console.log('Login successful, tokens received:', !!tokens.access_token)
+      
+      // Store tokens immediately in cookies
+      const { setTokens, setTenantId } = await import('@/lib/api')
+      setTokens(tokens)
+      
+      // Get user info
       const user = await authService.getMe()
+      console.log('User fetched:', user.email)
+      
+      // Set tenant ID
+      if (user.tenant_id) {
+        setTenantId(user.tenant_id)
+      }
+      
       login(user, tokens)
       toast.success('¡Bienvenido!')
-      router.push('/dashboard')
+      
+      // Small delay to ensure cookies are set before navigation
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 100)
     } catch (error: unknown) {
+      console.error('Login failed:', error)
       const err = error as { response?: { data?: { detail?: string } } }
       toast.error(err.response?.data?.detail || 'Error al iniciar sesión')
     } finally {

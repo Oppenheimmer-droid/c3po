@@ -31,8 +31,10 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
+      console.log('Starting registration...')
+      
       // Register with correct schema for backend
-      await authService.register({
+      const tenant = await authService.register({
         name: formData.tenant_name,
         slug: formData.tenant_name.toLowerCase().replace(/\s+/g, '-'),
         email: formData.email,
@@ -40,17 +42,33 @@ export default function RegisterPage() {
         first_name: formData.first_name,
         last_name: formData.last_name,
       })
+      console.log('Registration successful, tenant created:', tenant.id)
       
-      // Then login with the new credentials
+      // Login with the new credentials
       const tokens = await authService.login({
         email: formData.email,
         password: formData.password,
       })
+      console.log('Login successful, tokens received')
+      
+      // Store tokens immediately in cookies
+      const { setTokens, setTenantId } = await import('@/lib/api')
+      setTokens(tokens)
+      setTenantId(tenant.id)
+      
+      // Get user info
       const user = await authService.getMe()
+      console.log('User fetched:', user.email)
+      
       login(user, tokens)
       toast.success('¡Cuenta creada exitosamente!')
-      router.push('/dashboard')
+      
+      // Small delay to ensure cookies are set before navigation
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 100)
     } catch (error: unknown) {
+      console.error('Registration failed:', error)
       const err = error as { response?: { data?: { detail?: string } } }
       const detail = err.response?.data?.detail
       // Handle FastAPI validation errors
