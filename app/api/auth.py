@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
 from typing import Optional
 import hashlib
@@ -40,6 +40,16 @@ USERS_DB = {
 
 # Token store
 TOKENS = {}
+
+
+def extract_token(authorization: Optional[str]) -> Optional[str]:
+    """Extract token from Authorization header."""
+    if not authorization:
+        return None
+    # Handle both "Bearer <token>" and raw token
+    if authorization.startswith("Bearer "):
+        return authorization[7:]
+    return authorization
 
 class LoginRequest(BaseModel):
     email: str
@@ -126,9 +136,14 @@ def register(data: RegisterRequest):
     }
 
 @router.post("/refresh")
-def refresh(data: dict):
+def refresh(data: dict, authorization: Optional[str] = Header(None)):
     """Refresh access token."""
+    # First try to get refresh_token from body
     refresh_token = data.get("refresh_token")
+    
+    # If no refresh_token in body, try from Authorization header
+    if not refresh_token:
+        refresh_token = extract_token(authorization)
     
     if not refresh_token or refresh_token not in TOKENS:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
@@ -152,12 +167,13 @@ def refresh(data: dict):
     }
 
 @router.get("/me")
-def get_current_user(authorization: Optional[str] = None):
+def get_current_user(authorization: Optional[str] = Header(None)):
     """Get current user info."""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing authorization")
+    token = extract_token(authorization)
     
-    token = authorization.replace("Bearer ", "")
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+    
     if token not in TOKENS:
         raise HTTPException(status_code=401, detail="Invalid token")
     

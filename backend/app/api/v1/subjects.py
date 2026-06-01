@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, TenantContext, require_admin_or_teacher
+from app.core.deps import get_current_user, TenantContext, get_tenant_context, require_admin_or_teacher
 from app.repositories.documents import SubjectRepository, TopicRepository
 from app.schemas import (
     TenantResponse,
