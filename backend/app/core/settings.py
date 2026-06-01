@@ -12,20 +12,20 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "ReDrive Edu"
     APP_VERSION: str = "0.1.0"
-    DEBUG: bool = False
+    DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
 
-    # Database
-    DATABASE_URL: str
-    DATABASE_URL_SYNC: str
+    # Database (defaults for local development - use env vars in production)
+    DATABASE_URL: str = "sqlite+aiosqlite:///./redrive.db"
+    DATABASE_URL_SYNC: str = "sqlite:///./redrive.db"
 
-    # Redis
-    REDIS_URL: str = "redis://redis:6379/0"
-    CELERY_BROKER_URL: str = "redis://redis:6379/1"
-    CELERY_RESULT_BACKEND: str = "redis://redis:6379/2"
+    # Redis (disabled for local development without Redis)
+    REDIS_URL: Optional[str] = None
+    CELERY_BROKER_URL: Optional[str] = None
+    CELERY_RESULT_BACKEND: Optional[str] = None
 
     # ChromaDB
-    CHROMA_USE_CLOUD: bool = True
+    CHROMA_USE_CLOUD: bool = False
     CHROMA_CLOUD_API_KEY: Optional[str] = None
     CHROMA_CLOUD_HOST: str = "api.trychroma.com"
     CHROMA_CLOUD_PORT: int = 443

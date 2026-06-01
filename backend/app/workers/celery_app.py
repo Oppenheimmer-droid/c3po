@@ -1,40 +1,61 @@
 """Celery configuration and workers for async tasks."""
 
 from celery import Celery
-from celery.config import defaults
 import logging
 
 from app.core.config import settings
 
-# Configure Celery
-celery_app = Celery(
-    "redrive_edu",
-    broker=settings.CELERY_BROKER_URL,
-    backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.workers.tasks"],
-)
+# Only initialize Celery if Redis is configured
+if settings.CELERY_BROKER_URL and settings.CELERY_RESULT_BACKEND:
+    import celery
+    celeryApp = celery.Celery(
+        "redrive_edu",
+        broker=settings.CELERY_BROKER_URL,
+        backend=settings.CELERY_RESULT_BACKEND,
+        include=["app.workers.tasks"],
+    )
+    celeryApp.conf.update(
+        task_serializer="json",
+        accept_content=["json"],
+        result_serializer="json",
+        timezone="UTC",
+        enable_utc=True,
+        task_track_started=True,
+        task_time_limit=300,
+        task_soft_time_limit=240,
+        worker_prefetch_multiplier=1,
+        worker_max_tasks_per_child=50,
+        task_acks_late=True,
+        task_reject_on_worker_lost=True,
+    )
 
-# Celery configuration
-celery_app.conf.update(
-    task_serializer="json",
-    accept_content=["json"],
-    result_serializer="json",
-    timezone="UTC",
-    enable_utc=True,
-    task_track_started=True,
-    task_time_limit=300,  # 5 minutes
-    task_soft_time_limit=240,  # 4 minutes
-    worker_prefetch_multiplier=1,
-    worker_max_tasks_per_child=50,
-    task_acks_late=True,
-    task_reject_on_worker_lost=True,
-)
+    celery_app = celeryApp
+else:
+    celery_app = None
 
-# Logging
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+def get_task(func):
+    """Decorator that returns a no-op task if celery_app is None."""
+    if celery_app is None:
+        def noop_task(*args, **kwargs):
+            logger.warning(f"Celery not available. Task {func.__name__} not executed.")
+            return {"status": "skipped", "reason": "celery_not_configured"}
+        return noop_task
+    return celery_app.task(bind=True, max_retries=3, default_retry_delay=60)(func)
+
+def get_task_simple(func):
+    """Decorator for simple tasks."""
+    if celery_app is None:
+        def noop_task(*args, **kwargs):
+            logger.warning(f"Celery not available. Task {func.__name__} not executed.")
+            return {"status": "skipped", "reason": "celery_not_configured"}
+        return noop_task
+    return celery_app.task(bind=True, max_retries=3)(func)
+
+
+@get_task
 def process_document_task(self, document_id: str, tenant_id: str):
     """
     Async task to process a document.
@@ -69,7 +90,7 @@ def process_document_task(self, document_id: str, tenant_id: str):
     return asyncio.run(_process())
 
 
-@celery_app.task(bind=True, max_retries=3)
+@get_task_simple
 def delete_document_task(self, document_id: str, tenant_id: str):
     """Async task to delete a document and its vectors."""
     from app.core.database import AsyncSessionLocal
@@ -96,7 +117,7 @@ def delete_document_task(self, document_id: str, tenant_id: str):
     return asyncio.run(_delete())
 
 
-@celery_app.task(bind=True, max_retries=3)
+@get_task_simple
 def generate_evaluation_task(self, evaluation_id: str, tenant_id: str):
     """Async task to generate questions for an evaluation."""
     from app.core.database import AsyncSessionLocal
@@ -123,7 +144,7 @@ def generate_evaluation_task(self, evaluation_id: str, tenant_id: str):
     return asyncio.run(_generate())
 
 
-@celery_app.task(bind=True, max_retries=3)
+@get_task_simple
 def grade_evaluation_task(self, attempt_id: str, tenant_id: str):
     """Async task to grade an evaluation attempt."""
     from app.core.database import AsyncSessionLocal
@@ -150,7 +171,7 @@ def grade_evaluation_task(self, attempt_id: str, tenant_id: str):
     return asyncio.run(_grade())
 
 
-@celery_app.task
+@get_task_simple
 def cleanup_old_sessions():
     """Periodic task to clean up expired sessions."""
     from app.core.database import AsyncSessionLocal
