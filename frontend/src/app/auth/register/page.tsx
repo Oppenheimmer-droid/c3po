@@ -31,6 +31,17 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
+      // First register the user
+      await authService.register({
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        tenant_name: formData.tenant_name,
+        tenant_slug: formData.tenant_name.toLowerCase().replace(/\s+/g, '-'),
+      })
+      
+      // Then login with the new credentials
       const tokens = await authService.login({
         email: formData.email,
         password: formData.password,
@@ -39,9 +50,9 @@ export default function RegisterPage() {
       login(user, tokens)
       toast.success('¡Cuenta creada exitosamente!')
       router.push('/dashboard')
-    } catch {
-      toast.error('Error al registrar. La academia será creada al primer login.')
-      router.push('/dashboard')
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } }
+      toast.error(err.response?.data?.detail || 'Error al registrar. Intenta de nuevo.')
     } finally {
       setIsLoading(false)
     }
@@ -67,6 +78,9 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                 <input
                   type="text"
+                  id="first_name"
+                  name="first_name"
+                  autoComplete="given-name"
                   value={formData.first_name}
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition"
@@ -77,6 +91,9 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
                 <input
                   type="text"
+                  id="last_name"
+                  name="last_name"
+                  autoComplete="family-name"
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition"
@@ -89,6 +106,9 @@ export default function RegisterPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
               <input
                 type="email"
+                id="email"
+                name="email"
+                autoComplete="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition"
@@ -100,6 +120,9 @@ export default function RegisterPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de academia</label>
               <input
                 type="text"
+                id="tenant_name"
+                name="tenant_name"
+                autoComplete="organization"
                 value={formData.tenant_name}
                 onChange={(e) => setFormData({ ...formData, tenant_name: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition"
@@ -113,6 +136,9 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
                 <input
                   type="password"
+                  id="password"
+                  name="password"
+                  autoComplete="new-password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition"
@@ -123,6 +149,9 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar</label>
                 <input
                   type="password"
+                  id="confirm_password"
+                  name="confirm_password"
+                  autoComplete="new-password"
                   value={formData.confirm_password}
                   onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition"
