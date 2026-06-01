@@ -7,12 +7,12 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
+  name: string
+  slug: string
   email: string
   password: string
   first_name: string
   last_name: string
-  tenant_name: string
-  tenant_slug: string
 }
 
 export const authService = {

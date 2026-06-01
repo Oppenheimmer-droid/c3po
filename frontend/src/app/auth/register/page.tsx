@@ -31,14 +31,14 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      // First register the user
+      // Register with correct schema for backend
       await authService.register({
+        name: formData.tenant_name,
+        slug: formData.tenant_name.toLowerCase().replace(/\s+/g, '-'),
         email: formData.email,
         password: formData.password,
         first_name: formData.first_name,
         last_name: formData.last_name,
-        tenant_name: formData.tenant_name,
-        tenant_slug: formData.tenant_name.toLowerCase().replace(/\s+/g, '-'),
       })
       
       // Then login with the new credentials
@@ -52,7 +52,13 @@ export default function RegisterPage() {
       router.push('/dashboard')
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } }
-      toast.error(err.response?.data?.detail || 'Error al registrar. Intenta de nuevo.')
+      const detail = err.response?.data?.detail
+      // Handle FastAPI validation errors
+      if (Array.isArray(detail)) {
+        toast.error(detail.map((e: { msg?: string }) => e.msg || 'Error').join(', '))
+      } else {
+        toast.error(detail || 'Error al registrar. Intenta de nuevo.')
+      }
     } finally {
       setIsLoading(false)
     }
