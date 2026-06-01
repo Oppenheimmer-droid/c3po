@@ -25,7 +25,7 @@ export default function LoginPage() {
       const tokens = await authService.login(formData)
       console.log('Login successful, tokens received:', !!tokens.access_token)
       
-      // Store tokens immediately in cookies
+      // Store tokens in localStorage
       const { setTokens, setTenantId } = await import('@/lib/api')
       setTokens(tokens)
       
@@ -41,7 +41,7 @@ export default function LoginPage() {
       login(user, tokens)
       toast.success('¡Bienvenido!')
       
-      // Small delay to ensure cookies are set before navigation
+      // Small delay to ensure storage is set before navigation
       setTimeout(() => {
         router.push('/dashboard')
       }, 100)

@@ -1,67 +1,73 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
-import Cookies from 'js-cookie'
+'use client'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://c3po-production-0c24.up.railway.app'
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: API_URL || undefined,
+  baseURL: API_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important for cross-origin requests
 })
 
-// Token management
-export const getAccessToken = (): string | undefined => {
-  if (typeof document !== 'undefined') {
-    const cookies = document.cookie.split(';')
-    for (const cookie of cookies) {
-      const [name, value] = cookie.trim().split('=')
-      if (name === 'access_token') return value
-    }
-  }
-  return undefined
+// Token management using localStorage (more reliable than cookies for JWT)
+const TOKEN_KEY = 'c3po_tokens'
+const TENANT_KEY = 'c3po_tenant'
+
+interface TokenData {
+  access_token: string
+  refresh_token: string
+  expires_at?: number
 }
 
-export const getRefreshToken = (): string | undefined => {
-  if (typeof document !== 'undefined') {
-    const cookies = document.cookie.split(';')
-    for (const cookie of cookies) {
-      const [name, value] = cookie.trim().split('=')
-      if (name === 'refresh_token') return value
-    }
+export const getTokens = (): TokenData | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = localStorage.getItem(TOKEN_KEY)
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
   }
-  return undefined
 }
 
 export const setTokens = (tokens: { access_token: string; refresh_token: string }) => {
-  // Use direct document.cookie for better compatibility
-  if (typeof document !== 'undefined') {
-    document.cookie = `access_token=${tokens.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=lax`
-    document.cookie = `refresh_token=${tokens.refresh_token}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=lax`
+  if (typeof window === 'undefined') return
+  const tokenData: TokenData = {
+    ...tokens,
+    expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
   }
-  // Also use js-cookie as backup
-  Cookies.set('access_token', tokens.access_token, { expires: 7, sameSite: 'lax' })
-  Cookies.set('refresh_token', tokens.refresh_token, { expires: 7, sameSite: 'lax' })
+  localStorage.setItem(TOKEN_KEY, JSON.stringify(tokenData))
 }
 
 export const clearTokens = () => {
-  if (typeof document !== 'undefined') {
-    document.cookie = 'access_token=; path=/; max-age=0'
-    document.cookie = 'refresh_token=; path=/; max-age=0'
-  }
-  Cookies.remove('access_token')
-  Cookies.remove('refresh_token')
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(TENANT_KEY)
+}
+
+export const getAccessToken = (): string | null => {
+  const tokens = getTokens()
+  return tokens?.access_token ?? null
+}
+
+export const getRefreshToken = (): string | null => {
+  const tokens = getTokens()
+  return tokens?.refresh_token ?? null
 }
 
 // Tenant management
-export const getTenantId = (): string | undefined => {
-  return Cookies.get('tenant_id')
+export const getTenantId = (): string | null => {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(TENANT_KEY)
 }
 
 export const setTenantId = (tenantId: string) => {
-  Cookies.set('tenant_id', tenantId, { expires: 7, secure: true, sameSite: 'strict' })
+  if (typeof window === 'undefined') return
+  localStorage.setItem(TENANT_KEY, tenantId)
 }
 
 // Request interceptor
@@ -106,16 +112,16 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
         })
-        .then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return api(originalRequest)
-        })
-        .catch((err) => Promise.reject(err))
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`
+            return api(originalRequest)
+          })
+          .catch((err) => Promise.reject(err))
       }
 
       originalRequest._retry = true

@@ -51,7 +51,7 @@ export default function RegisterPage() {
       })
       console.log('Login successful, tokens received')
       
-      // Store tokens immediately in cookies
+      // Store tokens in localStorage
       const { setTokens, setTenantId } = await import('@/lib/api')
       setTokens(tokens)
       setTenantId(tenant.id)
@@ -63,7 +63,7 @@ export default function RegisterPage() {
       login(user, tokens)
       toast.success('¡Cuenta creada exitosamente!')
       
-      // Small delay to ensure cookies are set before navigation
+      // Small delay to ensure storage is set before navigation
       setTimeout(() => {
         router.push('/dashboard')
       }, 100)
