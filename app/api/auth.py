@@ -8,7 +8,6 @@ import time
 router = APIRouter()
 
 # Simple in-memory user store (for demo purposes)
-# In production, use a proper database
 USERS_DB = {
     "admin@redrive.edu": {
         "id": "user-admin-001",
@@ -73,12 +72,12 @@ def create_tokens(user_id: str):
     TOKENS[refresh_token] = {
         "user_id": user_id,
         "type": "refresh",
-        "exp": time.time() + 604800  # 7 days
+        "exp": time.time() + 604800
     }
     
     return access_token, refresh_token
 
-@router.post("/auth/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest):
     """Login user and return tokens."""
     user = USERS_DB.get(data.email.lower())
@@ -99,7 +98,7 @@ def login(data: LoginRequest):
         expires_in=3600
     )
 
-@router.post("/auth/register")
+@router.post("/register")
 def register(data: RegisterRequest):
     """Register a new user."""
     if data.email.lower() in USERS_DB:
@@ -126,7 +125,7 @@ def register(data: RegisterRequest):
         "tenant_id": tenant_id,
     }
 
-@router.post("/auth/refresh")
+@router.post("/refresh")
 def refresh(data: dict):
     """Refresh access token."""
     refresh_token = data.get("refresh_token")
@@ -152,7 +151,7 @@ def refresh(data: dict):
         "expires_in": 3600
     }
 
-@router.get("/auth/me")
+@router.get("/me")
 def get_current_user(authorization: Optional[str] = None):
     """Get current user info."""
     if not authorization or not authorization.startswith("Bearer "):
@@ -167,7 +166,6 @@ def get_current_user(authorization: Optional[str] = None):
         del TOKENS[token]
         raise HTTPException(status_code=401, detail="Token expired")
     
-    # Find user by id
     for user in USERS_DB.values():
         if user["id"] == token_data["user_id"]:
             return {
