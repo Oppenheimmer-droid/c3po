@@ -1,25 +1,25 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import type { User, UserSettings } from '@/types'
-import { setTokens, clearTokens, setTenantId } from '@/lib/api'
+import { getTokens, clearTokens as clearApiTokens, setTenantId } from '@/lib/api'
 
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
   settings: UserSettings
-  
+
   // Actions
   setUser: (user: User | null) => void
   login: (user: User, tokens: { access_token: string; refresh_token: string }) => void
   logout: () => void
   updateSettings: (settings: Partial<UserSettings>) => void
   setLoading: (loading: boolean) => void
+  initAuth: () => Promise<User | null>
 }
 
+// Auth store - NO PERSIST for security. Tokens are in localStorage, user state is in memory
 export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
+  (set) => ({
       user: null,
       isAuthenticated: false,
       isLoading: true,
@@ -29,25 +29,27 @@ export const useAuthStore = create<AuthState>()(
         notifications_enabled: true,
       },
 
-      setUser: (user) => set({ 
-        user, 
-        isAuthenticated: !!user 
+      setUser: (user) => set({
+        user,
+        isAuthenticated: !!user
       }),
 
       login: (user, tokens) => {
-        setTokens(tokens)
-        setTenantId(user.tenant_id)
-        set({ 
-          user, 
+        // Tokens are stored by the component before calling this
+        if (user.tenant_id) {
+          setTenantId(user.tenant_id)
+        }
+        set({
+          user,
           isAuthenticated: true,
           isLoading: false,
         })
       },
 
       logout: () => {
-        clearTokens()
-        set({ 
-          user: null, 
+        clearApiTokens()
+        set({
+          user: null,
           isAuthenticated: false,
           isLoading: false,
         })
@@ -58,15 +60,26 @@ export const useAuthStore = create<AuthState>()(
       })),
 
       setLoading: (loading) => set({ isLoading: loading }),
-    }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({ 
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-        settings: state.settings,
-      }),
-    }
+
+      // Initialize auth from localStorage tokens
+      initAuth: async () => {
+        const tokens = getTokens()
+        if (!tokens?.access_token) {
+          set({ user: null, isAuthenticated: false, isLoading: false })
+          return null
+        }
+        try {
+          const { authService } = await import('@/services')
+          const user = await authService.getMe()
+          set({ user, isAuthenticated: true, isLoading: false })
+          return user
+        } catch {
+          clearApiTokens()
+          set({ user: null, isAuthenticated: false, isLoading: false })
+          return null
+        }
+      },
+    })
   )
 )
 
