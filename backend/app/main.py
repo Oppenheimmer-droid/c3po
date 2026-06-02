@@ -13,10 +13,17 @@ from app.core.database import init_db, close_db
 from app.api.v1 import auth, documents, chat, evaluations, subjects, analytics
 
 # Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
-    format=settings.LOG_FORMAT if settings.LOG_FORMAT == "json" else "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+import logging.config
+if settings.LOG_FORMAT == "json":
+    logging.basicConfig(
+        level=getattr(logging, settings.LOG_LEVEL),
+        format='{"time": "%(asctime)s", "name": "%(name)s", "level": "%(levelname)s", "message": "%(message)s"}',
+    )
+else:
+    logging.basicConfig(
+        level=getattr(logging, settings.LOG_LEVEL),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
 
 logger = logging.getLogger(__name__)
 

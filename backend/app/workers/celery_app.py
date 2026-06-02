@@ -1,7 +1,6 @@
 """Celery configuration and workers for async tasks."""
 
 from celery import Celery
-from celery.config import defaults
 import logging
 
 from app.core.config import settings

@@ -11,7 +11,7 @@ import json
 import logging
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, TenantContext
+from app.core.deps import get_current_user, get_tenant_context, TenantContext
 from app.services.rag_service import RAGService
 from app.models import ChatSession, ChatMessage, ChatInteractionLog
 from app.schemas import (

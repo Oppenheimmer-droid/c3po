@@ -2,9 +2,9 @@
 
 from datetime import datetime, timezone
 from typing import Optional
-from sqlalchemy import String, Text, DateTime, Integer, Float, ForeignKey, Boolean
+import uuid
+from sqlalchemy import String, Text, DateTime, Integer, Float, ForeignKey, Boolean, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
 import enum
 
@@ -28,18 +28,18 @@ class Evaluation(Base):
     
     __tablename__ = "evaluations"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    tenant_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    document_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    subject_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True
+    subject_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    created_by: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     
     # Evaluation info
@@ -80,9 +80,9 @@ class Question(Base):
     
     __tablename__ = "questions"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    evaluation_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("evaluations.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    evaluation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("evaluations.id", ondelete="CASCADE"), nullable=False, index=True
     )
     
     # Question content
@@ -115,15 +115,15 @@ class EvaluationAttempt(Base):
     
     __tablename__ = "evaluation_attempts"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    tenant_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    evaluation_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("evaluations.id", ondelete="CASCADE"), nullable=False, index=True
+    evaluation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("evaluations.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    user_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     
     # Attempt info
@@ -153,12 +153,12 @@ class Answer(Base):
     
     __tablename__ = "answers"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    attempt_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("evaluation_attempts.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    attempt_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("evaluation_attempts.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    question_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False, index=True
+    question_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False, index=True
     )
     
     # Answer content
