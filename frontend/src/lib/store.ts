@@ -83,7 +83,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     try {
       const loginRes = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Tenant-Slug': 'default',
+        },
         body: JSON.stringify(DEMO_USER),
       })
       
