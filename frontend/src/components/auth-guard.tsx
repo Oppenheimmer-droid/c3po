@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 
@@ -11,56 +11,76 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
   const router = useRouter()
-  const { isAuthenticated, isLoading, initAuth, setLoading } = useAuthStore()
+  const { isLoading, isAuthenticated, initAuth, autoLogin } = useAuthStore()
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Initialize auth on mount - reads tokens from localStorage and validates with backend
-    if (isLoading) {
-      initAuth().then((user) => {
-        if (!user && requireAuth) {
-          router.push('/auth/login')
-        }
-      })
+    const init = async () => {
+      // Try to init auth (uses existing token or auto-login)
+      const user = await initAuth()
+      
+      if (!user && requireAuth) {
+        // Auto-login failed and auth required - redirect to login
+        router.push('/auth/login')
+      } else if (user && !requireAuth) {
+        // User authenticated but page doesn't require auth (login page)
+        router.push('/dashboard')
+      } else {
+        setReady(true)
+      }
     }
-  }, []) // Only run on mount
+    
+    if (isLoading) {
+      init()
+    }
+  }, [isLoading, requireAuth, router])
 
-  // Show loading while checking auth
-  if (isLoading) {
+  if (isLoading || !ready) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-accent-50">
         <div className="text-center">
           <div className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-gray-500">Verificando sesión...</p>
+          <p className="text-gray-500">Iniciando sesión...</p>
         </div>
       </div>
     )
   }
 
-  // If auth is required and not authenticated, return null (will redirect)
   if (requireAuth && !isAuthenticated) {
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-accent-50">
+        <div className="text-center">
+          <p className="text-gray-500">Redirigiendo...</p>
+        </div>
+      </div>
+    )
   }
 
-  // If auth is not required or user is authenticated, show children
   return <>{children}</>
 }
 
 // Simple component for pages that should redirect if authenticated (login/register)
 export function GuestGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, initAuth } = useAuthStore()
+  const { isLoading, isAuthenticated, initAuth } = useAuthStore()
   const router = useRouter()
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    if (isLoading) {
-      initAuth().then((user) => {
-        if (user) {
-          router.push('/dashboard')
-        }
-      })
+    const init = async () => {
+      const user = await initAuth()
+      if (user) {
+        router.push('/dashboard')
+      } else {
+        setReady(true)
+      }
     }
-  }, []) // Only run on mount
+    
+    if (isLoading) {
+      init()
+    }
+  }, [isLoading, router])
 
-  if (isLoading) {
+  if (isLoading || !ready) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
@@ -68,9 +88,12 @@ export function GuestGuard({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // If already authenticated, return null (will redirect)
   if (isAuthenticated) {
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+      </div>
+    )
   }
 
   return <>{children}</>

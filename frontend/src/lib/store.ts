@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import type { User, UserSettings } from '@/types'
-import { getTokens, clearTokens as clearApiTokens, setTenantId } from '@/lib/api'
+
+// Demo credentials for auto-login
+const DEMO_USER = { email: 'test@demo.com', password: 'Test1234' }
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://c3po-production-0c24.up.railway.app'
 
 interface AuthState {
   user: User | null
@@ -15,73 +18,125 @@ interface AuthState {
   updateSettings: (settings: Partial<UserSettings>) => void
   setLoading: (loading: boolean) => void
   initAuth: () => Promise<User | null>
+  autoLogin: () => Promise<boolean>
 }
 
-// Auth store - NO PERSIST for security. Tokens are in localStorage, user state is in memory
-export const useAuthStore = create<AuthState>()(
-  (set) => ({
-      user: null,
-      isAuthenticated: false,
-      isLoading: true,
-      settings: {
-        theme: 'system',
-        ai_provider: 'openai',
-        notifications_enabled: true,
-      },
+// Get tokens from localStorage
+function getTokens(): { access_token: string; refresh_token: string } | null {
+  if (typeof window === 'undefined') return null
+  const stored = localStorage.getItem('c3po_tokens')
+  if (!stored) return null
+  try {
+    return JSON.parse(stored)
+  } catch {
+    return null
+  }
+}
 
-      setUser: (user) => set({
-        user,
-        isAuthenticated: !!user
-      }),
+// Save tokens to localStorage
+function saveTokens(tokens: { access_token: string; refresh_token: string }) {
+  localStorage.setItem('c3po_tokens', JSON.stringify({
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  }))
+}
 
-      login: (user, tokens) => {
-        // Tokens are stored by the component before calling this
-        if (user.tenant_id) {
-          setTenantId(user.tenant_id)
-        }
-        set({
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-        })
-      },
+// Clear tokens
+function clearTokens() {
+  localStorage.removeItem('c3po_tokens')
+  localStorage.removeItem('c3po_tenant')
+}
 
-      logout: () => {
-        clearApiTokens()
-        set({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        })
-      },
+// Auth store - NO PERSIST. Tokens in localStorage, user state in memory
+export const useAuthStore = create<AuthState>()((set, get) => ({
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  settings: {
+    theme: 'system',
+    ai_provider: 'openai',
+    notifications_enabled: true,
+  },
 
-      updateSettings: (newSettings) => set((state) => ({
-        settings: { ...state.settings, ...newSettings }
-      })),
+  setUser: (user) => set({ user, isAuthenticated: !!user }),
 
-      setLoading: (loading) => set({ isLoading: loading }),
+  login: (user, tokens) => {
+    saveTokens(tokens)
+    if (user.tenant_id) localStorage.setItem('c3po_tenant', user.tenant_id)
+    set({ user, isAuthenticated: true, isLoading: false })
+  },
 
-      // Initialize auth from localStorage tokens
-      initAuth: async () => {
-        const tokens = getTokens()
-        if (!tokens?.access_token) {
-          set({ user: null, isAuthenticated: false, isLoading: false })
-          return null
-        }
-        try {
-          const { authService } = await import('@/services')
-          const user = await authService.getMe()
-          set({ user, isAuthenticated: true, isLoading: false })
-          return user
-        } catch {
-          clearApiTokens()
-          set({ user: null, isAuthenticated: false, isLoading: false })
-          return null
-        }
-      },
-    })
-  )
-)
+  logout: () => {
+    clearTokens()
+    set({ user: null, isAuthenticated: false, isLoading: false })
+  },
+
+  updateSettings: (newSettings) => set((state) => ({
+    settings: { ...state.settings, ...newSettings }
+  })),
+
+  setLoading: (loading) => set({ isLoading: loading }),
+
+  // Auto-login with demo credentials
+  autoLogin: async () => {
+    try {
+      const loginRes = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(DEMO_USER),
+      })
+      
+      if (!loginRes.ok) throw new Error('Login failed')
+      
+      const tokens = await loginRes.json()
+      saveTokens(tokens)
+
+      const userRes = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
+        headers: { 'Authorization': `Bearer ${tokens.access_token}` },
+      })
+      
+      if (!userRes.ok) throw new Error('Failed to get user')
+      
+      const user = await userRes.json()
+      if (user.tenant_id) localStorage.setItem('c3po_tenant', user.tenant_id)
+      
+      set({ user, isAuthenticated: true, isLoading: false })
+      return true
+    } catch (e) {
+      console.error('Auto-login failed:', e)
+      clearTokens()
+      set({ user: null, isAuthenticated: false, isLoading: false })
+      return false
+    }
+  },
+
+  // Initialize auth from localStorage tokens, auto-login if no valid tokens
+  initAuth: async () => {
+    const tokens = getTokens()
+    
+    // Check if we have a valid token
+    if (tokens?.access_token) {
+      try {
+        const { authService } = await import('@/services')
+        const user = await authService.getMe()
+        set({ user, isAuthenticated: true, isLoading: false })
+        return user
+      } catch {
+        clearTokens()
+      }
+    }
+    
+    // No valid tokens - auto-login with demo credentials
+    const state = get()
+    if (!state.isAuthenticated) {
+      const success = await state.autoLogin()
+      return success ? get().user : null
+    }
+    
+    return state.user
+  },
+}))
 
 // Theme store
 interface ThemeState {
@@ -96,11 +151,11 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 
   setTheme: (theme) => {
     set({ theme })
-    
+
     // Apply to document
     const root = document.documentElement
     root.classList.remove('light', 'dark')
-    
+
     if (theme === 'system') {
       const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       root.classList.add(isDark ? 'dark' : 'light')
@@ -117,7 +172,7 @@ interface ChatState {
   sessions: Array<{ id: string; title: string }>
   currentSessionId: string | null
   isStreaming: boolean
-  
+
   setSessions: (sessions: Array<{ id: string; title: string }>) => void
   setCurrentSession: (sessionId: string | null) => void
   addSession: (session: { id: string; title: string }) => void
