@@ -81,7 +81,7 @@ api.interceptors.request.use(
     }
 
     if (tenantId) {
-      config.headers['X-Tenant-ID'] = tenantId
+      config.headers['X-Tenant-Slug'] = 'default'
     }
 
     return config
