@@ -83,27 +83,27 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     try {
       const loginRes = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'X-Tenant-Slug': 'default',
         },
         body: JSON.stringify(DEMO_USER),
       })
-      
+
       if (!loginRes.ok) throw new Error('Login failed')
-      
+
       const tokens = await loginRes.json()
       saveTokens(tokens)
 
       const userRes = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
         headers: { 'Authorization': `Bearer ${tokens.access_token}` },
       })
-      
+
       if (!userRes.ok) throw new Error('Failed to get user')
-      
+
       const user = await userRes.json()
       if (user.tenant_id) localStorage.setItem('c3po_tenant', user.tenant_id)
-      
+
       set({ user, isAuthenticated: true, isLoading: false })
       return true
     } catch (e) {
@@ -121,22 +121,30 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     // Check if we have a valid token
     if (tokens?.access_token) {
       try {
-        const { authService } = await import('@/services')
-        const user = await authService.getMe()
-        set({ user, isAuthenticated: true, isLoading: false })
-        return user
+        // Direct fetch instead of using service (avoids axios interceptor issues)
+        const userRes = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
+          headers: { 'Authorization': `Bearer ${tokens.access_token}` },
+        })
+        
+        if (userRes.ok) {
+          const user = await userRes.json()
+          set({ user, isAuthenticated: true, isLoading: false })
+          return user
+        }
+        // Token invalid - clear and try auto-login
+        clearTokens()
       } catch {
         clearTokens()
       }
     }
-    
+
     // No valid tokens - auto-login with demo credentials
     const state = get()
     if (!state.isAuthenticated) {
       const success = await state.autoLogin()
       return success ? get().user : null
     }
-    
+
     return state.user
   },
 }))
