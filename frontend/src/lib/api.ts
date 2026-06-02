@@ -82,6 +82,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+    const url = originalRequest.url || ''
+
+    // Skip refresh for auth endpoints (prevents infinite loop)
+    if (url.includes('/auth/')) {
+      return Promise.reject(error)
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
@@ -100,8 +106,7 @@ api.interceptors.response.use(
 
       const refreshToken = getRefreshToken()
       if (!refreshToken) {
-        clearTokens()
-        window.location.href = '/auth/login'
+        // No refresh token - reject without redirecting
         return Promise.reject(error)
       }
 
@@ -114,13 +119,12 @@ api.interceptors.response.use(
         setTokens({ access_token, refresh_token: newRefreshToken })
 
         processQueue(null, access_token)
-        
+
         originalRequest.headers.Authorization = `Bearer ${access_token}`
         return api(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError as Error, null)
         clearTokens()
-        window.location.href = '/auth/login'
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
