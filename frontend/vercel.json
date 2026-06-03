@@ -1,0 +1,6 @@
+{
+  "buildCommand": "NPM_CONFIG_PRODUCTION=false npm install && npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "NPM_CONFIG_PRODUCTION=false npm install",
+  "framework": "nextjs"
+}
