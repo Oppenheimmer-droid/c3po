@@ -57,6 +57,7 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: list[str] = ["*"]
+    ALLOW_CREDENTIALS: bool = False
 
     # Logging
     LOG_LEVEL: str = "INFO"

@@ -29,6 +29,7 @@ async def register_tenant_and_admin(
     
     try:
         tenant, user = await service.register_tenant_and_user(tenant_data, user_data)
+        await db.commit()
         return tenant
     except Exception as e:
         raise HTTPException(

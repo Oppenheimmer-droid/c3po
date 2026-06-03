@@ -1,13 +1,14 @@
 """Security utilities for authentication and authorization."""
 
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from app.core.config import settings
 
 # Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -18,6 +19,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def hash_password(password: str) -> str:
     """Hash a password."""
     return pwd_context.hash(password)
+
+
+def hash_token(token: str) -> str:
+    """Hash a token deterministically for storage."""
+    return sha256(token.encode("utf-8")).hexdigest()
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

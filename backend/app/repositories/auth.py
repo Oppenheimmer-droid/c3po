@@ -3,7 +3,7 @@
 from typing import Optional
 from uuid import UUID
 from datetime import datetime, timezone
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, update, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import User, Tenant, UserSession, RefreshToken, UserRole
 from app.repositories.base import BaseRepository

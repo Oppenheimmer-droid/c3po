@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import User, UserRole, Tenant, TenantStatus
 from app.repositories.auth import UserRepository, TenantRepository, SessionRepository, RefreshTokenRepository
 from app.core.security import (
-    verify_password, hash_password, 
+    verify_password, hash_password, hash_token,
     create_access_token, create_refresh_token, verify_refresh_token
 )
 from app.schemas import (
@@ -106,7 +106,7 @@ class AuthService:
         
         await self.refresh_repo.create_token(
             user_id=user.id,
-            token_hash=hash_password(refresh_token),
+            token_hash=hash_token(refresh_token),
             expires_at=datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         )
         
@@ -131,7 +131,7 @@ class AuthService:
             return None
         
         # Verify refresh token in database
-        token_hash = hash_password(refresh_token)
+        token_hash = hash_token(refresh_token)
         stored_token = await self.refresh_repo.get_token(token_hash)
         if not stored_token or stored_token.user_id != UUID(user_id):
             return None
@@ -155,7 +155,7 @@ class AuthService:
         await self.refresh_repo.revoke_token(token_hash)
         await self.refresh_repo.create_token(
             user_id=user.id,
-            token_hash=hash_password(new_refresh_token),
+            token_hash=hash_token(new_refresh_token),
             expires_at=datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         )
         
