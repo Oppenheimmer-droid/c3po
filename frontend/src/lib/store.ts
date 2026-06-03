@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import type { User, UserSettings } from '@/types'
 
-// Demo credentials for auto-login
-const DEMO_USER = { email: 'test@demo.com', password: 'Test1234' }
+// Demo credentials for auto-login (matches the credentials shown in the login UI)
+const DEMO_USER = { email: 'admin@demo.com', password: 'admin123' }
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://c3po-production-0c24.up.railway.app'
 
 interface AuthState {
