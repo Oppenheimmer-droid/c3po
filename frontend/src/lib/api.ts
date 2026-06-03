@@ -11,7 +11,7 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for cross-origin requests
+  withCredentials: false,
 })
 
 // Token management using localStorage (more reliable than cookies for JWT)
@@ -81,7 +81,7 @@ api.interceptors.request.use(
     }
 
     if (tenantId) {
-      config.headers['X-Tenant-Slug'] = 'default'
+      config.headers['X-Tenant-ID'] = tenantId
     }
 
     return config

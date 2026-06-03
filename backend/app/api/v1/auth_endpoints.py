@@ -43,11 +43,17 @@ async def login(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """Login with email and password. Tenant is determined from subdomain or header."""
+    """Login with email and password. Tenant is determined from headers or default."""
     service = AuthService(db)
     
-    # Get tenant slug from header or subdomain
-    tenant_slug = request.headers.get("X-Tenant-Slug", "default")
+    tenant_slug = request.headers.get("X-Tenant-Slug")
+    tenant_id_header = request.headers.get("X-Tenant-ID")
+    tenant_id = None
+    if tenant_id_header:
+        try:
+            tenant_id = UUID(tenant_id_header)
+        except ValueError:
+            tenant_id = None
     
     user_agent = request.headers.get("User-Agent")
     ip_address = request.client.host if request.client else None
@@ -55,6 +61,7 @@ async def login(
     result = await service.login(
         login_data=login_data,
         tenant_slug=tenant_slug,
+        tenant_id=tenant_id,
         user_agent=user_agent,
         ip_address=ip_address,
     )

@@ -57,13 +57,21 @@ class AuthService:
     async def login(
         self,
         login_data: LoginRequest,
-        tenant_slug: str,
+        tenant_slug: Optional[str] = None,
+        tenant_id: Optional[UUID] = None,
         user_agent: Optional[str] = None,
         ip_address: Optional[str] = None,
     ) -> Optional[TokenResponse]:
         """Authenticate user and return tokens."""
-        # Get tenant
-        tenant = await self.tenant_repo.get_by_slug(tenant_slug)
+        # Determine tenant by ID first, then by slug, then fallback to default.
+        tenant = None
+        if tenant_id:
+            tenant = await self.tenant_repo.get_by_id(tenant_id)
+        if not tenant and tenant_slug:
+            tenant = await self.tenant_repo.get_by_slug(tenant_slug)
+        if not tenant:
+            tenant = await self.tenant_repo.get_by_slug("default")
+        
         if not tenant or tenant.status != TenantStatus.ACTIVE:
             return None
         
