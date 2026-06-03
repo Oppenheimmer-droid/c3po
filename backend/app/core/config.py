@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+import os
 
 
 class Settings(BaseSettings):
@@ -17,8 +18,11 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
+    
+    # Server - Railway provides PORT env variable
+    SERVER_PORT: int = 8000
 
-    # Database (default para desarrollo local)
+    # Database (Railway provides DATABASE_URL, fallback to SQLite for local dev)
     DATABASE_URL: str = "sqlite+aiosqlite:///./redrive.db"
     DATABASE_URL_SYNC: str = "sqlite:///./redrive.db"
 
@@ -65,6 +69,28 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Railway provides DATABASE_URL - switch from SQLite
+        if os.getenv("DATABASE_URL"):
+            self.DATABASE_URL = os.getenv("DATABASE_URL")
+            if "DATABASE_URL_SYNC" not in os.environ:
+                self.DATABASE_URL_SYNC = os.getenv("DATABASE_URL", "").replace("+asyncpg", "").replace("+aiosqlite", "")
+        # Railway provides REDIS_URL
+        if os.getenv("REDIS_URL"):
+            self.REDIS_URL = os.getenv("REDIS_URL")
+            self.CELERY_BROKER_URL = os.getenv("REDIS_URL")
+            self.CELERY_RESULT_BACKEND = os.getenv("REDIS_URL")
+        # Railway provides PORT env variable
+        if os.getenv("PORT"):
+            self.SERVER_PORT = int(os.getenv("PORT", "8000"))
+        # Allow override of SECRET_KEY
+        if os.getenv("SECRET_KEY"):
+            self.SECRET_KEY = os.getenv("SECRET_KEY")
+        # Railway sets ENVIRONMENT
+        if os.getenv("ENVIRONMENT"):
+            self.DEBUG = os.getenv("ENVIRONMENT", "").lower() == "development"
 
 
 # ESTA LÍNEA ES CRÍTICA
