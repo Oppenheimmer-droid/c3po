@@ -63,7 +63,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
 
     # CORS (allow all for development)
-    CORS_ORIGINS: list[str] = ["*"]
+    CORS_ORIGINS: list[str] = [
+        "https://frontend-pi-seven-18.vercel.app",
+        "http://localhost:3000",
+        "*"
+    ]
     ALLOW_CREDENTIALS: bool = False
 
     # Logging
