@@ -9,11 +9,18 @@ const nextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'https://c3po-frontend.vercel.app',
   },
   async rewrites() {
-    const backend = process.env.NEXT_PUBLIC_API_URL || 'https://c3po-production-0c24.up.railway.app'
+    return []
+  },
+  async headers() {
     return [
       {
         source: '/api/:path*',
-        destination: `${backend}/api/:path*`,
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS, PATCH' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization, X-Tenant-ID, X-Requested-With' },
+          { key: 'Access-Control-Allow-Credentials', value: 'true' },
+        ],
       },
     ]
   },

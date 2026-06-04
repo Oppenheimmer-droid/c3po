@@ -1,6 +1,25 @@
 {
-  "buildCommand": "NPM_CONFIG_PRODUCTION=false npm install && npm run build",
+  "buildCommand": "npm install && npm run build",
   "outputDirectory": ".next",
-  "installCommand": "NPM_CONFIG_PRODUCTION=false npm install",
-  "framework": "nextjs"
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, X-Tenant-ID"
+        }
+      ]
+    }
+  ]
 }

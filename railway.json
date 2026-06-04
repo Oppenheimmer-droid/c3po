@@ -15,6 +15,10 @@
       "liveness": {
         "command": "curl --fail http://0.0.0.0:8000/health || exit 1"
       }
+    },
+    "environmentVariables": {
+      "FRONTEND_URL": "https://c3po-frontend.vercel.app",
+      "ENVIRONMENT": "production"
     }
   }
 }

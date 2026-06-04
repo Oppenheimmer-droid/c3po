@@ -11,7 +11,7 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false,
+  withCredentials: true,
 })
 
 // Token management using localStorage (more reliable than cookies for JWT)
@@ -140,7 +140,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post(`${API_URL}/api/v1/auth/refresh`, {
+        const response = await axios.post(`${API_URL}/auth/refresh`, {
           refresh_token: refreshToken,
         })
 

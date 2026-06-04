@@ -60,13 +60,20 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
 
-    # CORS
+    # CORS - Railway provides Railway's URL in RAILWAY_PUBLIC_DOMAIN
+    _railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
+    _railway_url = f"https://{_railway_domain}" if _railway_domain else ""
+    _frontend_url = os.getenv("FRONTEND_URL", "")
+    
     CORS_ORIGINS: list[str] = [
-        "https://frontend-pi-seven-18.vercel.app",
+        "https://*.vercel.app",
         "http://localhost:3000",
-        "*"
+        "http://localhost:3001",
+        _railway_url,  # Current Railway deployment
+        "https://c3po-production-0c24.up.railway.app",  # Production Railway URL
+        _frontend_url,  # Frontend URL from env
     ]
-    ALLOW_CREDENTIALS: bool = False
+    ALLOW_CREDENTIALS: bool = True
 
     # Logging
     LOG_LEVEL: str = "INFO"
