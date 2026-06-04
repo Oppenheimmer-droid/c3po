@@ -34,10 +34,13 @@ export default function RegisterPage() {
     try {
       console.log('Starting registration...')
       
+      // Generate tenant slug
+      const tenantSlug = formData.tenant_name.toLowerCase().replace(/\s+/g, '-')
+      
       // Register with correct schema for backend
       const tenant = await authService.register({
         name: formData.tenant_name,
-        slug: formData.tenant_name.toLowerCase().replace(/\s+/g, '-'),
+        slug: tenantSlug,
         email: formData.email,
         password: formData.password,
         first_name: formData.first_name,
@@ -45,17 +48,23 @@ export default function RegisterPage() {
       })
       console.log('Registration successful, tenant created:', tenant.id)
       
+      // Save tenant slug for future logins
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('c3po_tenant_slug', tenantSlug)
+      }
+      
       // Login with the new credentials
       const tokens = await authService.login({
         email: formData.email,
         password: formData.password,
-      })
+      }, tenantSlug)
       console.log('Login successful, tokens received')
       
       // Store tokens in localStorage
-      const { setTokens, setTenantId } = await import('@/lib/api')
+      const { setTokens, setTenantId, setTenantSlug } = await import('@/lib/api')
       setTokens(tokens)
       setTenantId(tenant.id)
+      setTenantSlug(tenantSlug)
       
       // Get user info
       const user = await authService.getMe()

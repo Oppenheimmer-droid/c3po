@@ -23,12 +23,21 @@ export default function LoginPage() {
 
     try {
       console.log('Attempting login with:', formData.email)
-      const tokens = await authService.login(formData)
+      
+      // Get tenant slug from localStorage or use default
+      const tenantSlug = typeof window !== 'undefined' 
+        ? localStorage.getItem('c3po_tenant_slug') || 'default'
+        : 'default'
+      
+      console.log('Using tenant slug:', tenantSlug)
+      
+      const tokens = await authService.login(formData, tenantSlug)
       console.log('Login successful, tokens received:', !!tokens.access_token)
       
       // Store tokens in localStorage
-      const { setTokens, setTenantId } = await import('@/lib/api')
+      const { setTokens, setTenantId, setTenantSlug } = await import('@/lib/api')
       setTokens(tokens)
+      setTenantSlug(tenantSlug)
       
       // Get user info
       const user = await authService.getMe()

@@ -16,9 +16,24 @@ export interface RegisterData {
 }
 
 export const authService = {
-  async login(credentials: LoginCredentials): Promise<AuthTokens> {
-    const response = await api.post<AuthTokens>('/auth/login', credentials)
-    return response.data
+  async login(credentials: LoginCredentials, tenantSlug?: string): Promise<AuthTokens> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        }
+        if (tenantSlug) {
+          headers['X-Tenant-Slug'] = tenantSlug
+        }
+        
+        const response = await api.post<AuthTokens>('/auth/login', credentials, {
+          headers,
+        })
+        resolve(response.data)
+      } catch (error) {
+        reject(error)
+      }
+    })
   },
 
   async register(data: RegisterData): Promise<Tenant> {

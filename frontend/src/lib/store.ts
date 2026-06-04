@@ -21,6 +21,17 @@ interface AuthState {
   autoLogin: () => Promise<boolean>
 }
 
+// Get tenant slug from localStorage
+function getTenantSlug(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('c3po_tenant_slug')
+}
+
+// Save tenant slug to localStorage
+function saveTenantSlug(slug: string) {
+  localStorage.setItem('c3po_tenant_slug', slug)
+}
+
 // Get tokens from localStorage
 function getTokens(): { access_token: string; refresh_token: string } | null {
   if (typeof window === 'undefined') return null
@@ -46,6 +57,7 @@ function saveTokens(tokens: { access_token: string; refresh_token: string }) {
 function clearTokens() {
   localStorage.removeItem('c3po_tokens')
   localStorage.removeItem('c3po_tenant')
+  localStorage.removeItem('c3po_tenant_slug')
 }
 
 // Auth store - NO PERSIST. Tokens in localStorage, user state in memory
@@ -63,7 +75,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   login: (user, tokens) => {
     saveTokens(tokens)
-    if (user.tenant_id) localStorage.setItem('c3po_tenant', user.tenant_id)
+    if (user.tenant_id) {
+      localStorage.setItem('c3po_tenant', user.tenant_id)
+    }
+    // Extract tenant slug from user object or generate from tenant_name
+    const tenantSlug = (user as any).tenant_slug || (user as any).tenant_name?.toLowerCase().replace(/\s+/g, '-') || 'default'
+    saveTenantSlug(tenantSlug)
     set({ user, isAuthenticated: true, isLoading: false })
   },
 
@@ -114,16 +131,24 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
   },
 
-  // Initialize auth from localStorage tokens, auto-login if no valid tokens
+  // Initialize auth from localStorage tokens (no auto-login)
   initAuth: async () => {
     const tokens = getTokens()
+    const tenantSlug = getTenantSlug()
     
     // Check if we have a valid token
     if (tokens?.access_token) {
       try {
         // Direct fetch instead of using service (avoids axios interceptor issues)
+        const headers: Record<string, string> = {
+          'Authorization': `Bearer ${tokens.access_token}`,
+        }
+        if (tenantSlug) {
+          headers['X-Tenant-Slug'] = tenantSlug
+        }
+        
         const userRes = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
-          headers: { 'Authorization': `Bearer ${tokens.access_token}` },
+          headers,
         })
         
         if (userRes.ok) {
@@ -131,21 +156,16 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
           set({ user, isAuthenticated: true, isLoading: false })
           return user
         }
-        // Token invalid - clear and try auto-login
+        // Token invalid - clear
         clearTokens()
       } catch {
         clearTokens()
       }
     }
 
-    // No valid tokens - auto-login with demo credentials
-    const state = get()
-    if (!state.isAuthenticated) {
-      const success = await state.autoLogin()
-      return success ? get().user : null
-    }
-
-    return state.user
+    // No valid tokens - user needs to login
+    set({ user: null, isAuthenticated: false, isLoading: false })
+    return null
   },
 }))
 

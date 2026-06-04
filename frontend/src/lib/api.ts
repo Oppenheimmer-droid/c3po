@@ -17,6 +17,7 @@ const api: AxiosInstance = axios.create({
 // Token management using localStorage (more reliable than cookies for JWT)
 const TOKEN_KEY = 'c3po_tokens'
 const TENANT_KEY = 'c3po_tenant'
+const TENANT_SLUG_KEY = 'c3po_tenant_slug'
 
 interface TokenData {
   access_token: string
@@ -47,6 +48,7 @@ export const clearTokens = () => {
   if (typeof window === 'undefined') return
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(TENANT_KEY)
+  localStorage.removeItem(TENANT_SLUG_KEY)
 }
 
 export const getAccessToken = (): string | null => {
@@ -70,11 +72,22 @@ export const setTenantId = (tenantId: string) => {
   localStorage.setItem(TENANT_KEY, tenantId)
 }
 
+export const getTenantSlug = (): string | null => {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(TENANT_SLUG_KEY)
+}
+
+export const setTenantSlug = (slug: string) => {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(TENANT_SLUG_KEY, slug)
+}
+
 // Request interceptor
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAccessToken()
     const tenantId = getTenantId()
+    const tenantSlug = getTenantSlug()
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -82,6 +95,10 @@ api.interceptors.request.use(
 
     if (tenantId) {
       config.headers['X-Tenant-ID'] = tenantId
+    }
+
+    if (tenantSlug) {
+      config.headers['X-Tenant-Slug'] = tenantSlug
     }
 
     return config
