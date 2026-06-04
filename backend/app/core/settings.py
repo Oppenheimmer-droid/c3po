@@ -60,18 +60,11 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
 
-    # CORS - Railway provides Railway's URL in RAILWAY_PUBLIC_DOMAIN
-    _railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
-    _railway_url = f"https://{_railway_domain}" if _railway_domain else ""
-    _frontend_url = os.getenv("FRONTEND_URL", "")
-    
+    # CORS Configuration
     CORS_ORIGINS: list[str] = [
         "https://*.vercel.app",
         "http://localhost:3000",
         "http://localhost:3001",
-        _railway_url,  # Current Railway deployment
-        "https://c3po-production-0c24.up.railway.app",  # Production Railway URL
-        _frontend_url,  # Frontend URL from env
     ]
     ALLOW_CREDENTIALS: bool = True
 
@@ -97,9 +90,31 @@ class Settings(BaseSettings):
         # Allow override of SECRET_KEY
         if os.getenv("SECRET_KEY"):
             self.SECRET_KEY = os.getenv("SECRET_KEY")
-        # Allow override of CORS_ORIGINS (comma-separated)
+        
+        # Build CORS_ORIGINS from environment variables
+        cors_origins = list(self.CORS_ORIGINS)  # Start with defaults
+        
+        # Add CORS_ORIGINS from env (comma-separated)
         if os.getenv("CORS_ORIGINS"):
-            self.CORS_ORIGINS = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "").split(",")]
+            env_origins = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "").split(",") if origin.strip()]
+            cors_origins.extend(env_origins)
+        
+        # Add FRONTEND_URL if provided
+        if os.getenv("FRONTEND_URL"):
+            frontend_url = os.getenv("FRONTEND_URL", "").strip()
+            if frontend_url and frontend_url not in cors_origins:
+                cors_origins.append(frontend_url)
+        
+        # Add Railway domain if available
+        if os.getenv("RAILWAY_PUBLIC_DOMAIN"):
+            railway_url = f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN')}"
+            if railway_url not in cors_origins:
+                cors_origins.append(railway_url)
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        self.CORS_ORIGINS = [x for x in cors_origins if not (x in seen or seen.add(x))]
+        
         # Railway sets ENVIRONMENT
         if os.getenv("ENVIRONMENT"):
             self.DEBUG = os.getenv("ENVIRONMENT", "").lower() == "development"

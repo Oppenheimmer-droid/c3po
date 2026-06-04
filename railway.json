@@ -9,7 +9,9 @@
     "restartPolicyMaxRetries": 10,
     "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port 8000",
     "environmentVariables": {
-      "CORS_ORIGINS": "https://frontend-pi-seven-18.vercel.app,http://localhost:3000"
+      "CORS_ORIGINS": "https://frontend-pi-seven-18.vercel.app,http://localhost:3000,http://localhost:3001",
+      "FRONTEND_URL": "https://frontend-pi-seven-18.vercel.app",
+      "ENVIRONMENT": "production"
     },
     "healthchecks": {
       "readiness": {
@@ -18,10 +20,6 @@
       "liveness": {
         "command": "curl --fail http://0.0.0.0:8000/health || exit 1"
       }
-    },
-    "environmentVariables": {
-      "FRONTEND_URL": "https://c3po-frontend.vercel.app",
-      "ENVIRONMENT": "production"
     }
   }
 }
