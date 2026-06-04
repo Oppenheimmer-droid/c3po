@@ -97,6 +97,9 @@ class Settings(BaseSettings):
         # Allow override of SECRET_KEY
         if os.getenv("SECRET_KEY"):
             self.SECRET_KEY = os.getenv("SECRET_KEY")
+        # Allow override of CORS_ORIGINS (comma-separated)
+        if os.getenv("CORS_ORIGINS"):
+            self.CORS_ORIGINS = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "").split(",")]
         # Railway sets ENVIRONMENT
         if os.getenv("ENVIRONMENT"):
             self.DEBUG = os.getenv("ENVIRONMENT", "").lower() == "development"
