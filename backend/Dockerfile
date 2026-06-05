@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
     build-essential \
+    curl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy main requirements first for better caching
