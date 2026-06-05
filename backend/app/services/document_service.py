@@ -17,7 +17,7 @@ from docx import Document as DocxDocument
 from app.models import Document, DocumentChunk
 from app.repositories.documents import DocumentRepository, DocumentChunkRepository
 from app.rag.vector_store import vector_store
-from app.core.config import settings
+from app.core.settings import settings
 
 logger = logging.getLogger(__name__)
 

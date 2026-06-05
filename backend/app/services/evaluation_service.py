@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
-from app.core.config import settings
+from app.core.settings import settings
 from app.models import (
     Evaluation, Question, EvaluationAttempt, Answer,
     EvaluationType, QuestionType, Document

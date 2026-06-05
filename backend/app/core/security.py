@@ -5,7 +5,7 @@ from hashlib import sha256
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from app.core.config import settings
+from app.core.settings import settings
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")

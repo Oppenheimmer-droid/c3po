@@ -1,5 +1,5 @@
 from celery import Celery
-from app.core.config import settings
+from app.core.settings import settings
 
 # Create a local Celery app with eager execution for development/testing.
 celery_app = Celery(

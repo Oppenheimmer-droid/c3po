@@ -14,7 +14,7 @@ from app.schemas import (
     LoginRequest, TokenResponse, UserCreate, UserResponse,
     TenantCreate, TenantResponse
 )
-from app.core.config import settings
+from app.core.settings import settings
 
 
 class AuthService:

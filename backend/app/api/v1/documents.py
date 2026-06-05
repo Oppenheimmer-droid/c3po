@@ -44,7 +44,7 @@ async def upload_document(
     content = await file.read()
     
     # Check file size (50MB default)
-    from app.core.config import settings
+    from app.core.settings import settings
     if len(content) > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

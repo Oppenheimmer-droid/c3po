@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import declarative_base
 
-from app.core.config import settings
+from app.core.settings import settings
 from app.core.base import Base
 
 # Determinar URLs
