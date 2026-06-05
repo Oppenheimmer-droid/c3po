@@ -65,10 +65,11 @@ class Settings(BaseSettings):
     # CORS (allow all for development)
     CORS_ORIGINS: list[str] = [
         "https://frontend-pi-seven-18.vercel.app",
+        "https://*.vercel.app",
         "http://localhost:3000",
-        "*"
+        "http://localhost:3001",
     ]
-    ALLOW_CREDENTIALS: bool = False
+    ALLOW_CREDENTIALS: bool = True
 
     # Logging
     LOG_LEVEL: str = "INFO"
