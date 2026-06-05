@@ -4,6 +4,14 @@
     "dockerfilePath": "backend/Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port $PORT'"
+    "startCommand": "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port $PORT'",
+    "healthchecks": {
+      "readiness": {
+        "command": ["sh", "-c", "curl --fail http://0.0.0.0:$PORT/api/v1/health || exit 1"]
+      },
+      "liveness": {
+        "command": ["sh", "-c", "curl --fail http://0.0.0.0:$PORT/api/v1/health || exit 1"]
+      }
+    }
   }
 }
