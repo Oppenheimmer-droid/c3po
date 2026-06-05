@@ -4,13 +4,20 @@
     "dockerfilePath": "backend/Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port $PORT'",
+    "numReplicas": 1,
+    "sleepApplication": false,
+    "restartPolicyMaxRetries": 10,
+    "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "environmentVariables": {
+      "CORS_ORIGINS": "https://*.vercel.app,http://localhost:3000,http://localhost:3001",
+      "ENVIRONMENT": "production"
+    },
     "healthchecks": {
       "readiness": {
-        "command": ["sh", "-c", "curl --fail http://0.0.0.0:$PORT/api/v1/health || exit 1"]
+        "command": "curl --fail http://0.0.0.0:8000/health || exit 1"
       },
       "liveness": {
-        "command": ["sh", "-c", "curl --fail http://0.0.0.0:$PORT/api/v1/health || exit 1"]
+        "command": "curl --fail http://0.0.0.0:8000/health || exit 1"
       }
     }
   }
