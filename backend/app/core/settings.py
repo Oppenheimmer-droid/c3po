@@ -1,6 +1,10 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 import os
+import logging
+
+# Configure logging for Railway visibility
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class Settings(BaseSettings):
@@ -118,7 +122,8 @@ class Settings(BaseSettings):
         # Railway sets ENVIRONMENT
         if os.getenv("ENVIRONMENT"):
             self.DEBUG = os.getenv("ENVIRONMENT", "").lower() == "development"
-
-
+        
+        # Fallback: if DATABASE_URL is still SQLite and in production, log warning
+        if "sqlite" in self.DATABASE_URL and os.getenv("ENVIRONMENT") == "production":
+            logging.warning("DATABASE_URL not set - Railway may not have provided PostgreSQL. Using SQLite fallback.")
 settings = Settings()
-

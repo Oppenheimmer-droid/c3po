@@ -1,17 +1,26 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import logging
 from app.core.settings import settings
 from app.core.database import engine, Base
 from app.api.api import api_router
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
-    # Startup: Create tables if they don't exist
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Startup: Create tables if engine is configured
+    if engine is not None:
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logging.info("Database tables created successfully")
+        except Exception as e:
+            # Log error but don't fail startup - allow app to start for health checks
+            logging.warning(f"Could not create tables: {e}")
     yield
     # Shutdown: cleanup if needed
     pass
@@ -39,7 +48,7 @@ app.include_router(api_router, prefix="/api")
 def root():
     return {"status": "ok", "message": "C3PO backend running"}
 
-# Railway health check endpoint
+# Railway health check endpoint (no DB required)
 @app.get("/health")
 def health():
     return {"status": "ok"}
