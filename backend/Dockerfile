@@ -8,10 +8,16 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Copy main requirements first for better caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy application code
+COPY app/ /app/app/
+COPY pyproject.toml /app/
+
+# Create pyc for faster startup
+RUN python -m compileall -q /app/app/
 
 ENV PORT=8000
 
