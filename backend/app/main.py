@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.api_v1.api import api_router
+from app.api.api import api_router
 
 app = FastAPI(title="C3PO Backend")
 
