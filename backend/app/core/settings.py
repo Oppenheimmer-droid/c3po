@@ -29,7 +29,17 @@ class Settings(BaseSettings):
     OPENAI_EMBEDDING_DIM: int = 1536
     OPENAI_MOCK: bool = False
 
-    # ── Redis ─────────────────────────────────────────────────
+    # ── JWT ──────────────────────────────────────────────
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ALGORITHM: str = "HS256"
+
+    # ── Document Processing ─────────────────────────────
+    CHUNK_SIZE: int = 1000
+    CHUNK_OVERLAP: int = 200
+    MAX_FILE_SIZE_MB: int = 50
+
+    # ── Redis ─────────────────────────────────────────────
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
