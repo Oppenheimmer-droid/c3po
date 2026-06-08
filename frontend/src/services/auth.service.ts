@@ -7,7 +7,7 @@ class AuthService {
       '/auth/login',
       credentials,
       {
-        headers: tenantSlug ? { 'X-Tenant-ID': tenantSlug } : {}
+        headers: tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {}
       }
     )
 
