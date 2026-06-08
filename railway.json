@@ -3,7 +3,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+    "startCommand": "sh -c \"uvicorn app.main:app --host 0.0.0.0 --port $PORT\"",
     "healthchecks": {
       "readiness": {
         "command": ["sh", "-c", "curl --fail -X HEAD http://0.0.0.0:$PORT/api/v1/health || exit 1"]
@@ -14,3 +14,4 @@
     }
   }
 }
+
