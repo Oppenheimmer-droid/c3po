@@ -27,6 +27,7 @@ redis>=5.0.0
 chromadb==0.5.23
 llama-index-core>=0.10.0
 openai>=1.0.0
+groq>=0.8.0
 
 # ── Procesado de documentos ──────────────────────────────────
 pypdf>=4.0.0
