@@ -86,10 +86,14 @@ services:
       - SECRET_KEY=c3po-dev-secret-key-change-in-production
       - ENVIRONMENT=development
       - DEBUG=true
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3001,https://*.vercel.app
       - ALLOW_CREDENTIALS=true
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_MOCK=true
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROQ_MODEL=llama-3.1-8b-instant
+      - GROQ_MOCK=${GROQ_MOCK:-true}
+      - AI_PROVIDER=groq
     ports:
       - "8000:8000"
     volumes:

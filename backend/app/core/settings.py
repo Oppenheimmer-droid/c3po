@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # ── CORS ──────────────────────────────────────────────────
     # Railway almacena este valor como CSV separado por comas.
     # El property cors_origins lo parsea en lista para CORSMiddleware.
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001,https://*.vercel.app"
     ALLOW_CREDENTIALS: bool = True
 
     @property
@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     OPENAI_EMBEDDING_DIM: int = 1536
     OPENAI_MOCK: bool = False
+
+    # ── Groq ──────────────────────────────────────────────────
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.1-8b-instant"
+    GROQ_MOCK: bool = False
+
+    # ── AI Provider Selection ─────────────────────────────────
+    # Options: "groq", "openai"
+    AI_PROVIDER: str = "groq"
 
     # ── JWT ──────────────────────────────────────────────
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
