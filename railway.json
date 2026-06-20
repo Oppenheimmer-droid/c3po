@@ -6,10 +6,9 @@
   },
   "deploy": {
     "numReplicas": 1,
-    "startCommand": "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT",
     "healthcheck": {
       "path": "/",
-      "port": "$PORT"
+      "port": 8000
     }
   }
 }
