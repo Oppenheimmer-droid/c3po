@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 # ChromaDB configuration
 CHROMA_HOST = os.getenv("CHROMA_HOST")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
-CHROMA_USE_CLOUD = os.getenv("CHROMA_USE_CLOUD", "false").lower() == "true"
 
 
 class ChromaVectorStore:
@@ -24,19 +23,20 @@ class ChromaVectorStore:
             return
         
         try:
-            from chromadb import HttpClient
+            import chromadb
             from chromadb.config import Settings
-            self._client = HttpClient(
+            
+            # ChromaDB HttpClient - without api_version parameter
+            self._client = chromadb.HttpClient(
                 host=CHROMA_HOST,
                 port=CHROMA_PORT,
-                ssl=True,
-                api_version="v2",
-                settings=Settings(chroma_api_impl="rest")
             )
             # Test connection
             self._client.heartbeat()
             self._available = True
             logger.info(f"ChromaDB connected at {CHROMA_HOST}:{CHROMA_PORT}")
+        except ImportError:
+            logger.warning("ChromaDB not installed, using fallback mode")
         except Exception as e:
             logger.warning(f"ChromaDB not available: {e}. Using fallback mode.")
             self._client = None
@@ -104,15 +104,12 @@ class DummyVectorStore:
     """Dummy vector store for offline mode."""
 
     async def add_chunks(self, tenant_id: str, chunks: list) -> list:
-        """Return dummy IDs for chunks."""
         return [f"dummy_{i}" for i in range(len(chunks))]
 
     async def delete_by_document(self, tenant_id: str, document_id: str):
-        """No-op delete."""
         pass
 
     async def retrieve(self, tenant_id: str, query: str, top_k: int = 4) -> list:
-        """Return empty results."""
         return []
 
 
@@ -122,7 +119,6 @@ def retrieval_pipeline(query: str, tenant_id: str = None, top_k: int = 4):
         return {"chunks": [], "metadata": {}, "debug": "No tenant_id provided"}
     
     try:
-        # Try ChromaVectorStore first
         vs = ChromaVectorStore()
         chunks = vs.retrieve(tenant_id, query, top_k)
         return {
