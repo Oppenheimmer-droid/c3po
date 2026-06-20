@@ -6,9 +6,10 @@
   },
   "deploy": {
     "numReplicas": 1,
+    "port": 8080,
     "healthcheck": {
       "path": "/",
-      "port": 8000
+      "port": 8080
     }
   }
 }
