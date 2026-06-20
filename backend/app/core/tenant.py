@@ -1,27 +1,10 @@
-from pydantic import BaseModel
-from fastapi import Header, HTTPException
-from typing import Optional
+"""
+Tenant context utilities.
 
-class TenantContext(BaseModel):
-    tenant_id: str = "dummy-tenant"
-    user_id: str = "dummy-user"
-    role: str = "student"
+This module re-exports TenantContext and get_tenant_context from deps.py
+to maintain backwards compatibility with modules that import from here.
+"""
 
+from app.core.deps import TenantContext, get_tenant_context, get_current_user
 
-async def get_tenant_context(
-    x_tenant_id: Optional[str] = Header(None, alias="X-Tenant-ID"),
-    x_tenant_slug: Optional[str] = Header(None, alias="X-Tenant-Slug"),
-    authorization: Optional[str] = Header(None),
-) -> TenantContext:
-    """Get tenant context from request headers.
-    
-    In production, this should extract and validate JWT token
-    to get the actual tenant_id, user_id, and role.
-    """
-    # For development, return dummy context
-    # In production, decode JWT and extract claims
-    return TenantContext(
-        tenant_id=x_tenant_id or "dummy-tenant",
-        user_id="dummy-user",
-        role="student",
-    )
+__all__ = ["TenantContext", "get_tenant_context", "get_current_user"]

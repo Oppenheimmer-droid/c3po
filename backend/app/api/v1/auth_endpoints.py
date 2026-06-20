@@ -142,6 +142,13 @@ async def get_current_user_info(
             detail="User not found",
         )
     
+    # Fetch tenant name
+    from sqlalchemy import select
+    from app.models import Tenant
+    result = await db.execute(select(Tenant).where(Tenant.id == ctx.user.tenant_id))
+    tenant = result.scalar_one_or_none()
+    tenant_name = tenant.name if tenant else ""
+    
     return UserMeResponse(
         id=ctx.user.id,
         email=ctx.user.email,
@@ -149,7 +156,7 @@ async def get_current_user_info(
         last_name=ctx.user.last_name,
         role=ctx.user.role.value,
         tenant_id=ctx.user.tenant_id,
-        tenant_name="",  # Will be populated from tenant
+        tenant_name=tenant_name,
     )
 
 
