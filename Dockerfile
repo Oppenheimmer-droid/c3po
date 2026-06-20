@@ -14,11 +14,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev gcc build-essential curl libmagic1 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ ./app/
+COPY backend/app/ ./app/
 RUN mkdir -p /app/uploads /app/chroma_data
 
-# Railway sets PORT to 8080, app needs to listen on that port
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
