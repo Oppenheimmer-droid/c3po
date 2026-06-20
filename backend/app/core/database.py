@@ -38,6 +38,12 @@ def _normalize_db_url(url: str) -> str:
     return url
 
 
+def is_database_configured() -> bool:
+    """Check if database is properly configured."""
+    from app.core.settings import settings
+    return bool(settings.DATABASE_URL)
+
+
 def _get_engine() -> AsyncEngine:
     global _async_engine
     if _async_engine is None:
