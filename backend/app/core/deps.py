@@ -82,10 +82,17 @@ async def get_current_user_optional(
 class TenantContext:
     """Context holder for current tenant."""
     
-    def __init__(self, tenant_id: UUID, user_id: UUID):
+    def __init__(self, tenant_id: UUID, user_id: UUID, user: Optional[User] = None):
         self.tenant_id = tenant_id
         self.user_id = user_id
-        self.user: Optional[User] = None
+        self.user = user
+    
+    @property
+    def role(self) -> str:
+        """Get the role from the user object."""
+        if self.user and hasattr(self.user, 'role'):
+            return self.user.role.value if hasattr(self.user.role, 'value') else str(self.user.role)
+        return "student"
 
 
 async def get_tenant_context(

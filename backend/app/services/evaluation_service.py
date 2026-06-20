@@ -14,7 +14,7 @@ from app.models import (
     EvaluationType, QuestionType, Document
 )
 from app.rag.vector_store import retrieval_pipeline
-from openai import OpenAI
+from app.services.groq_service import GroqService
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,13 @@ class EvaluationService:
     
     def __init__(self, db: AsyncSession):
         self.db = db
-        self._client = None
+        self._groq = None
     
-    def _get_client(self) -> OpenAI:
-        """Lazy initialization of OpenAI client."""
-        if self._client is None:
-            self._client = OpenAI(api_key=settings.OPENAI_API_KEY)
-        return self._client
+    def _get_groq(self) -> GroqService:
+        """Lazy initialization of Groq client."""
+        if self._groq is None:
+            self._groq = GroqService()
+        return self._groq
     
     async def generate_evaluation(
         self,
@@ -149,8 +149,8 @@ class EvaluationService:
         count: int,
         difficulty: int,
     ) -> List[Dict[str, Any]]:
-        """Generate questions using OpenAI."""
-        client = self._get_client()
+        """Generate questions using Groq."""
+        groq = self._get_groq()
         
         # Build context from chunks
         context = "\n\n".join([
@@ -182,17 +182,13 @@ Generate questions in JSON format with this structure:
 Make sure questions cover different aspects of the content and vary in difficulty."""
         
         try:
-            response = client.chat.completions.create(
-                model=settings.OPENAI_MODEL,
+            response = groq.chat(
                 messages=[
                     {"role": "system", "content": "You are an educational quiz generator. Output ONLY valid JSON."},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.7,
-                max_tokens=2000,
             )
-            
-            content = response.choices[0].message.content.strip()
+            content = response.get("content", "").strip()
             
             # Parse JSON response
             if content.startswith("```"):
