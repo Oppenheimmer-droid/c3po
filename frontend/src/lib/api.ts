@@ -2,9 +2,8 @@
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://c3po-production-0c24.up.railway.app'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://c3po-production-0c24.up.railway.app/api'
 
-// Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
   timeout: 30000,
@@ -14,7 +13,6 @@ const api: AxiosInstance = axios.create({
   withCredentials: true,
 })
 
-// Token management using localStorage (more reliable than cookies for JWT)
 const TOKEN_KEY = 'c3po_tokens'
 const TENANT_KEY = 'c3po_tenant'
 const TENANT_SLUG_KEY = 'c3po_tenant_slug'
@@ -37,11 +35,10 @@ export const getTokens = (): TokenData | null => {
 
 export const setTokens = (tokens: { access_token: string; refresh_token: string }) => {
   if (typeof window === 'undefined') return
-  const tokenData: TokenData = {
+  localStorage.setItem(TOKEN_KEY, JSON.stringify({
     ...tokens,
-    expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-  }
-  localStorage.setItem(TOKEN_KEY, JSON.stringify(tokenData))
+    expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  }))
 }
 
 export const clearTokens = () => {
@@ -51,123 +48,56 @@ export const clearTokens = () => {
   localStorage.removeItem(TENANT_SLUG_KEY)
 }
 
-export const getAccessToken = (): string | null => {
-  const tokens = getTokens()
-  return tokens?.access_token ?? null
-}
+export const getAccessToken = (): string | null => getTokens()?.access_token ?? null
+export const getRefreshToken = (): string | null => getTokens()?.refresh_token ?? null
+export const getTenantId = (): string | null => typeof window !== 'undefined' ? localStorage.getItem(TENANT_KEY) : null
+export const setTenantId = (id: string) => typeof window !== 'undefined' && localStorage.setItem(TENANT_KEY, id)
+export const getTenantSlug = (): string | null => typeof window !== 'undefined' ? localStorage.getItem(TENANT_SLUG_KEY) : null
+export const setTenantSlug = (slug: string) => typeof window !== 'undefined' && localStorage.setItem(TENANT_SLUG_KEY, slug)
 
-export const getRefreshToken = (): string | null => {
-  const tokens = getTokens()
-  return tokens?.refresh_token ?? null
-}
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const token = getAccessToken()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  const tenantId = getTenantId()
+  if (tenantId) config.headers['X-Tenant-ID'] = tenantId
+  const tenantSlug = getTenantSlug()
+  if (tenantSlug) config.headers['X-Tenant-Slug'] = tenantSlug
+  return config
+}, (error) => Promise.reject(error))
 
-// Tenant management
-export const getTenantId = (): string | null => {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(TENANT_KEY)
-}
-
-export const setTenantId = (tenantId: string) => {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(TENANT_KEY, tenantId)
-}
-
-export const getTenantSlug = (): string | null => {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(TENANT_SLUG_KEY)
-}
-
-export const setTenantSlug = (slug: string) => {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(TENANT_SLUG_KEY, slug)
-}
-
-// Request interceptor
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = getAccessToken()
-    const tenantId = getTenantId()
-    const tenantSlug = getTenantSlug()
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-
-    if (tenantId) {
-      config.headers['X-Tenant-ID'] = tenantId
-    }
-
-    if (tenantSlug) {
-      config.headers['X-Tenant-Slug'] = tenantSlug
-    }
-
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
-// Response interceptor with token refresh
 let isRefreshing = false
-let failedQueue: Array<{
-  resolve: (value: unknown) => void
-  reject: (reason?: unknown) => void
-}> = []
+let failedQueue: Array<{resolve: (v: unknown) => void; reject: (e?: unknown) => void}> = []
 
 const processQueue = (error: Error | null, token: string | null = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error)
-    } else {
-      prom.resolve(token)
-    }
-  })
+  failedQueue.forEach(prom => error ? prom.reject(error) : prom.resolve(token))
   failedQueue = []
 }
 
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
-    const url = originalRequest.url || ''
-
-    // Skip refresh for auth endpoints (prevents infinite loop)
-    if (url.includes('/auth/')) {
-      return Promise.reject(error)
-    }
-
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
+    const originalRequest = error.config as InternalAxiosRequestConfig & {_retry?: boolean}
+    const url = originalRequest?.url || ''
+    if (url.includes('/auth/')) return Promise.reject(error)
+    
+    if (error.response?.status === 401 && !originalRequest?._retry) {
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject })
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`
-            return api(originalRequest)
-          })
-          .catch((err) => Promise.reject(err))
+        return new Promise((resolve, reject) => failedQueue.push({ resolve, reject }))
+          .then(token => { originalRequest!.headers.Authorization = `Bearer ${token}`; return api(originalRequest!) })
+          .catch(err => Promise.reject(err))
       }
-
-      originalRequest._retry = true
+      originalRequest!._retry = true
       isRefreshing = true
-
       const refreshToken = getRefreshToken()
-      if (!refreshToken) {
-        // No refresh token - reject without redirecting
-        return Promise.reject(error)
-      }
-
+      if (!refreshToken) { isRefreshing = false; return Promise.reject(error) }
+      
       try {
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
-          refresh_token: refreshToken,
-        })
-
+        const response = await axios.post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken })
         const { access_token, refresh_token: newRefreshToken } = response.data
         setTokens({ access_token, refresh_token: newRefreshToken })
-
         processQueue(null, access_token)
-
-        originalRequest.headers.Authorization = `Bearer ${access_token}`
-        return api(originalRequest)
+        originalRequest!.headers.Authorization = `Bearer ${access_token}`
+        return api(originalRequest!)
       } catch (refreshError) {
         processQueue(refreshError as Error, null)
         clearTokens()
@@ -176,7 +106,6 @@ api.interceptors.response.use(
         isRefreshing = false
       }
     }
-
     return Promise.reject(error)
   }
 )
