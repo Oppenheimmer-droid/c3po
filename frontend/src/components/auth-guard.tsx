@@ -27,3 +27,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>
 }
+
+// GuestGuard - redirects authenticated users away from guest pages
+export function GuestGuard({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { user, accessToken, initAuth } = useAuthStore()
+
+  useEffect(() => {
+    initAuth()
+  }, [])
+
+  useEffect(() => {
+    if (user && accessToken && pathname.startsWith('/auth')) {
+      router.replace('/dashboard')
+    }
+  }, [user, accessToken, pathname, router])
+
+  return <>{children}</>
+}

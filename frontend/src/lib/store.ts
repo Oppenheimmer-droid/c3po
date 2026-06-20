@@ -61,3 +61,22 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 )
+
+// Chat Store
+interface ChatState {
+  sessionId: string | null
+  messages: Array<{ role: string; content: string }>
+  setSession: (id: string) => void
+  addMessage: (role: string, content: string) => void
+  clearChat: () => void
+}
+
+export const useChatStore = create<ChatState>()((set) => ({
+  sessionId: null,
+  messages: [],
+  setSession: (id) => set({ sessionId: id, messages: [] }),
+  addMessage: (role, content) => set((state) => ({
+    messages: [...state.messages, { role, content }]
+  })),
+  clearChat: () => set({ sessionId: null, messages: [] }),
+}))

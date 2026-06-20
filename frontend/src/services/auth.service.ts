@@ -10,9 +10,9 @@ class AuthService {
         headers: tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {}
       }
     )
-
     return response.data
   }
 }
 
 export const authService = new AuthService()
+export default authService
