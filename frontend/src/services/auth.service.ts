@@ -2,13 +2,13 @@ import api from '@/lib/api'
 import axios from 'axios'
 import type { LoginCredentials, AuthTokens, User } from '@/types'
 
-const LOCAL_API = '/api'
+// Use /api/v1 which is rewritten to Railway
+const API_BASE = '/api/v1'
 
 class AuthService {
   async login(credentials: LoginCredentials, tenantSlug?: string): Promise<AuthTokens> {
-    // Use local Next.js API route to proxy to Railway
     const response = await axios.post<AuthTokens>(
-      `${LOCAL_API}/auth/login`,
+      `${API_BASE}/auth/login`,
       credentials,
       {
         headers: tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {}
@@ -18,8 +18,7 @@ class AuthService {
   }
 
   async getMe(): Promise<User> {
-    // Use local proxy
-    const response = await axios.get<User>('/api/auth/me', {
+    const response = await axios.get<User>(`${API_BASE}/auth/me`, {
       headers: { Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('c3po_access_token') : ''}` }
     })
     return response.data
@@ -33,8 +32,7 @@ class AuthService {
     first_name: string
     last_name: string
   }): Promise<{ id: string }> {
-    // Use local proxy
-    const response = await axios.post<{ id: string }>('/api/auth/register', data)
+    const response = await axios.post<{ id: string }>(`${API_BASE}/auth/register`, data)
     return response.data
   }
 }

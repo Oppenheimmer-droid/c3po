@@ -2,9 +2,9 @@
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
 
-// Hardcoded Railway URL (CORS configured for Vercel)
-const API_URL = 'https://c3po-production-0c24.up.railway.app'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://c3po-production-0c24.up.railway.app'
 
+// For other API calls (not auth) - uses environment variable
 const api: AxiosInstance = axios.create({
   baseURL: `${API_URL}/api/v1`,
   timeout: 30000,
@@ -92,8 +92,7 @@ api.interceptors.response.use(
       if (!refreshToken) { isRefreshing = false; return Promise.reject(error) }
       
       try {
-        // Use local proxy for refresh
-        const response = await axios.post(`/api/auth/refresh`, { refresh_token: refreshToken })
+        const response = await axios.post(`/api/v1/auth/refresh`, { refresh_token: refreshToken })
         const { access_token, refresh_token: newRefreshToken } = response.data
         setTokens({ access_token, refresh_token: newRefreshToken })
         processQueue(null, access_token)
