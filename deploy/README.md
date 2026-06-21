@@ -12,7 +12,7 @@
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                     Railway (Backend)                        │
-│              https://c3po-production.up.railway.app         │
+│              https://c3po-production-0c24.up.railway.app     │
 │                   FastAPI + PostgreSQL                       │
 └─────────────────────────────────────────────────────────────┘
 ```
