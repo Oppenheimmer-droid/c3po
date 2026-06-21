@@ -2,9 +2,9 @@
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://c3po-production-0c24.up.railway.app'
+// Hardcoded Railway URL (CORS configured for Vercel)
+const API_URL = 'https://c3po-production-0c24.up.railway.app'
 
-// Direct API calls to Railway backend (CORS configured)
 const api: AxiosInstance = axios.create({
   baseURL: `${API_URL}/api/v1`,
   timeout: 30000,
