@@ -92,7 +92,7 @@ api.interceptors.response.use(
       if (!refreshToken) { isRefreshing = false; return Promise.reject(error) }
       
       try {
-        const response = await axios.post(`/api/v1/auth/refresh`, { refresh_token: refreshToken })
+        const response = await axios.post(`/api/auth/refresh`, { refresh_token: refreshToken })
         const { access_token, refresh_token: newRefreshToken } = response.data
         setTokens({ access_token, refresh_token: newRefreshToken })
         processQueue(null, access_token)
