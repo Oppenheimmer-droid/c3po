@@ -10,7 +10,6 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
 })
 
 const TOKEN_KEY = 'c3po_tokens'
