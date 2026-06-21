@@ -2,13 +2,18 @@ import api from '@/lib/api'
 import axios from 'axios'
 import type { LoginCredentials, AuthTokens, User } from '@/types'
 
-// Use local API route which proxies to Railway
-const LOCAL_API = '/api'
+// Use env variable for API URL - set NEXT_PUBLIC_API_URL in Vercel to Railway URL
+const getApiUrl = () => {
+  if (typeof window !== 'undefined') {
+    return (process.env.NEXT_PUBLIC_API_URL || 'https://c3po-production-0c24.up.railway.app') + '/api/v1'
+  }
+  return 'https://c3po-production-0c24.up.railway.app/api/v1'
+}
 
 class AuthService {
   async login(credentials: LoginCredentials, tenantSlug?: string): Promise<AuthTokens> {
     const response = await axios.post<AuthTokens>(
-      `${LOCAL_API}/auth/login`,
+      `${getApiUrl()}/auth/login`,
       credentials,
       {
         headers: tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {}
@@ -18,7 +23,7 @@ class AuthService {
   }
 
   async getMe(): Promise<User> {
-    const response = await axios.get<User>(`${LOCAL_API}/auth/me`, {
+    const response = await axios.get<User>(`${getApiUrl()}/auth/me`, {
       headers: { Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('c3po_access_token') : ''}` }
     })
     return response.data
@@ -32,7 +37,7 @@ class AuthService {
     first_name: string
     last_name: string
   }): Promise<{ id: string }> {
-    const response = await axios.post<{ id: string }>(`${LOCAL_API}/auth/register`, data)
+    const response = await axios.post<{ id: string }>(`${getApiUrl()}/auth/register`, data)
     return response.data
   }
 }
