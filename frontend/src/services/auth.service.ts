@@ -2,13 +2,13 @@ import api from '@/lib/api'
 import axios from 'axios'
 import type { LoginCredentials, AuthTokens, User } from '@/types'
 
-// Railway backend URL
-const RAILWAY_API = 'https://c3po-production-0c24.up.railway.app/api/v1'
+// Use local API route which proxies to Railway
+const LOCAL_API = '/api'
 
 class AuthService {
   async login(credentials: LoginCredentials, tenantSlug?: string): Promise<AuthTokens> {
     const response = await axios.post<AuthTokens>(
-      `${RAILWAY_API}/auth/login`,
+      `${LOCAL_API}/auth/login`,
       credentials,
       {
         headers: tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {}
@@ -18,7 +18,7 @@ class AuthService {
   }
 
   async getMe(): Promise<User> {
-    const response = await axios.get<User>(`${RAILWAY_API}/auth/me`, {
+    const response = await axios.get<User>(`${LOCAL_API}/auth/me`, {
       headers: { Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('c3po_access_token') : ''}` }
     })
     return response.data
@@ -32,7 +32,7 @@ class AuthService {
     first_name: string
     last_name: string
   }): Promise<{ id: string }> {
-    const response = await axios.post<{ id: string }>(`${RAILWAY_API}/auth/register`, data)
+    const response = await axios.post<{ id: string }>(`${LOCAL_API}/auth/register`, data)
     return response.data
   }
 }
