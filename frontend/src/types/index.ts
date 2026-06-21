@@ -30,6 +30,11 @@ export interface AuthTokens {
   expires_in: number
 }
 
+export interface LoginCredentials {
+  email: string
+  password: string
+}
+
 // Document Types
 export interface Document {
   id: string

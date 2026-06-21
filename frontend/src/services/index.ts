@@ -1,4 +1,4 @@
-export { default as authService } from './auth.service'
-export { default as documentService } from './document.service'
-export { default as chatService } from './chat.service'
-export { default as evaluationService } from './evaluation.service'
+export { authService } from './auth.service'
+export { documentService } from './document.service'
+export { chatService } from './chat.service'
+export { evaluationService } from './evaluation.service'

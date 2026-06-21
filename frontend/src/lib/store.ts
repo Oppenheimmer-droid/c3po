@@ -7,6 +7,8 @@ interface AuthState {
   user: User | null
   accessToken: string | null
   refreshToken: string | null
+  isAuthenticated: boolean
+  isLoading: boolean
   login: (user: User, tokens: { access_token: string; refresh_token: string }) => void
   logout: () => void
   initAuth: () => Promise<void>
@@ -18,12 +20,16 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       refreshToken: null,
+      isAuthenticated: false,
+      isLoading: true,
 
       login: (user, tokens) => {
         set({
           user,
           accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token
+          refreshToken: tokens.refresh_token,
+          isAuthenticated: true,
+          isLoading: false
         })
       },
 
@@ -31,13 +37,19 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: null,
           accessToken: null,
-          refreshToken: null
+          refreshToken: null,
+          isAuthenticated: false,
+          isLoading: false
         })
       },
 
       initAuth: async () => {
+        set({ isLoading: true })
         const { accessToken } = get()
-        if (!accessToken) return
+        if (!accessToken) {
+          set({ isLoading: false })
+          return
+        }
 
         try {
           const res = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
@@ -50,7 +62,7 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const user = await res.json()
-          set({ user })
+          set({ user, isAuthenticated: true, isLoading: false })
         } catch {
           get().logout()
         }
@@ -63,20 +75,29 @@ export const useAuthStore = create<AuthState>()(
 )
 
 // Chat Store
+interface Session {
+  id: string
+  title: string
+}
+
 interface ChatState {
-  sessionId: string | null
-  messages: Array<{ role: string; content: string }>
-  setSession: (id: string) => void
-  addMessage: (role: string, content: string) => void
+  sessions: Session[]
+  currentSessionId: string | null
+  streaming: boolean
+  setSessions: (sessions: Session[]) => void
+  setCurrentSession: (id: string) => void
+  addSession: (session: Session) => void
+  setStreaming: (streaming: boolean) => void
   clearChat: () => void
 }
 
 export const useChatStore = create<ChatState>()((set) => ({
-  sessionId: null,
-  messages: [],
-  setSession: (id) => set({ sessionId: id, messages: [] }),
-  addMessage: (role, content) => set((state) => ({
-    messages: [...state.messages, { role, content }]
-  })),
-  clearChat: () => set({ sessionId: null, messages: [] }),
+  sessions: [],
+  currentSessionId: null,
+  streaming: false,
+  setSessions: (sessions) => set({ sessions }),
+  setCurrentSession: (id) => set({ currentSessionId: id }),
+  addSession: (session) => set((state) => ({ sessions: [...state.sessions, session] })),
+  setStreaming: (streaming) => set({ streaming }),
+  clearChat: () => set({ currentSessionId: null, sessions: [] }),
 }))
