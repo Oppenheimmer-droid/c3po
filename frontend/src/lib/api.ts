@@ -4,8 +4,9 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://c3po-production-0c24.up.railway.app'
 
+// Use relative path for Vercel proxy
 const api: AxiosInstance = axios.create({
-  baseURL: `${API_URL}/api/v1`,
+  baseURL: '/api/v1',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
