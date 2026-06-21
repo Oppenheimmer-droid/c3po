@@ -43,11 +43,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/proxy/:path*",
-      "destination": "https://c3po-production-0c24.up.railway.app/:path*"
-    }
   ]
 }
