@@ -4,9 +4,9 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://c3po-production-0c24.up.railway.app'
 
-// Use relative path for Vercel proxy
+// Direct API calls to Railway backend
 const api: AxiosInstance = axios.create({
-  baseURL: '/api/v1',
+  baseURL: `${API_URL}/api/v1`,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ api.interceptors.response.use(
       if (!refreshToken) { isRefreshing = false; return Promise.reject(error) }
       
       try {
-        const response = await axios.post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken })
+        const response = await axios.post(`${API_URL}/api/v1/auth/refresh`, { refresh_token: refreshToken })
         const { access_token, refresh_token: newRefreshToken } = response.data
         setTokens({ access_token, refresh_token: newRefreshToken })
         processQueue(null, access_token)
