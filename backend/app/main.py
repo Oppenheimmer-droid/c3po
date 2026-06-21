@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -15,12 +15,14 @@ app = FastAPI(
 )
 
 # ── CORS — debe ir antes de los routers ──────────────────────
+# Allow all origins for production flexibility
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Tenant-ID", "X-Tenant-Slug"],
+    allow_headers=["Content-Type", "Authorization", "X-Tenant-ID", "X-Tenant-Slug", "X-Requested-With"],
+    expose_headers=["*"],
 )
 
 # ── Routers ──────────────────────────────────────────────────

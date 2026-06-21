@@ -15,12 +15,13 @@ class Settings(BaseSettings):
     # ── CORS ──────────────────────────────────────────────────
     # Railway almacena este valor como CSV separado por comas.
     # El property cors_origins lo parsea en lista para CORSMiddleware.
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001,https://*.vercel.app"
+    CORS_ORIGINS: str = "*"
     ALLOW_CREDENTIALS: bool = True
 
     @property
     def cors_origins(self) -> List[str]:
-        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+        # Allow all origins for production flexibility
+        return ["*"]
 
     # ── OpenAI ────────────────────────────────────────────────
     OPENAI_API_KEY: str = ""
