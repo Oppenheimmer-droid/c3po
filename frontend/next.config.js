@@ -9,14 +9,6 @@ const nextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'https://c3po-lime.vercel.app',
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'wss://c3po-production-0c24.up.railway.app',
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'https://c3po-production-0c24.up.railway.app/api/:path*',
-      },
-    ]
-  },
 }
 
 module.exports = nextConfig
