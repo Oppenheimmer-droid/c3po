@@ -14,7 +14,7 @@ class AuthService {
   }
 
   async getMe(): Promise<User> {
-    const response = await api.get<User>('/api/v1/auth/me')
+    const response = await api.get<User>('/auth/me')
     return response.data
   }
 

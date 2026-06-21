@@ -19,7 +19,7 @@ export interface SubmitAnswerData {
 
 export const evaluationService = {
   async createEvaluation(data: CreateEvaluationData): Promise<Evaluation> {
-    const response = await api.post<Evaluation>('/api/v1/evaluations', data)
+    const response = await api.post<Evaluation>('/evaluations', data)
     return response.data
   },
 
@@ -28,25 +28,25 @@ export const evaluationService = {
     page_size?: number
     document_id?: string
   }): Promise<Evaluation[]> {
-    const response = await api.get<Evaluation[]>('/api/v1/evaluations', { params })
+    const response = await api.get<Evaluation[]>('/evaluations', { params })
     return response.data
   },
 
   async getEvaluation(evaluationId: string): Promise<Evaluation> {
-    const response = await api.get<Evaluation>(`/api/v1/evaluations/${evaluationId}`)
+    const response = await api.get<Evaluation>(`/evaluations/${evaluationId}`)
     return response.data
   },
 
   async getQuestions(evaluationId: string, includeAnswers = false): Promise<Question[]> {
     const response = await api.get<Question[]>(
-      `/api/v1/evaluations/${evaluationId}/questions`,
+      `/evaluations/${evaluationId}/questions`,
       { params: { include_answers: includeAnswers } }
     )
     return response.data
   },
 
   async startAttempt(evaluationId: string): Promise<EvaluationAttempt> {
-    const response = await api.post<EvaluationAttempt>(`/api/v1/evaluations/${evaluationId}/start`)
+    const response = await api.post<EvaluationAttempt>(`/evaluations/${evaluationId}/start`)
     return response.data
   },
 
@@ -68,7 +68,7 @@ export const evaluationService = {
       answers: Array<{ question_id: string; is_correct: boolean; points_earned: number; explanation?: string }>
       feedback: string
     }>(
-      `/api/v1/evaluations/${evaluationId}/submit`,
+      `/evaluations/${evaluationId}/submit`,
       { answers },
       { params: { attempt_id: attemptId } }
     )
@@ -76,14 +76,14 @@ export const evaluationService = {
   },
 
   async publishEvaluation(evaluationId: string): Promise<void> {
-    await api.post(`/api/v1/evaluations/${evaluationId}/publish`)
+    await api.post(`/evaluations/${evaluationId}/publish`)
   },
 
   async getMyAttempts(params?: {
     page?: number
     page_size?: number
   }): Promise<EvaluationAttempt[]> {
-    const response = await api.get<EvaluationAttempt[]>('/api/v1/evaluations/attempts/my', { params })
+    const response = await api.get<EvaluationAttempt[]>('/evaluations/attempts/my', { params })
     return response.data
   },
 }

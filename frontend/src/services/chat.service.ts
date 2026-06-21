@@ -13,26 +13,26 @@ export interface CreateSessionData {
 
 export const chatService = {
   async createSession(data: CreateSessionData): Promise<ChatSession> {
-    const response = await api.post<ChatSession>('/api/v1/chat/sessions', data)
+    const response = await api.post<ChatSession>('/chat/sessions', data)
     return response.data
   },
 
   async getSessions(params?: { page?: number; page_size?: number }): Promise<ChatSession[]> {
-    const response = await api.get<ChatSession[]>('/api/v1/chat/sessions', { params })
+    const response = await api.get<ChatSession[]>('/chat/sessions', { params })
     return response.data
   },
 
   async getSession(sessionId: string): Promise<ChatSession> {
-    const response = await api.get<ChatSession>(`/api/v1/chat/sessions/${sessionId}`)
+    const response = await api.get<ChatSession>(`/chat/sessions/${sessionId}`)
     return response.data
   },
 
   async deleteSession(sessionId: string): Promise<void> {
-    await api.delete(`/api/v1/chat/sessions/${sessionId}`)
+    await api.delete(`/chat/sessions/${sessionId}`)
   },
 
   async getMessages(sessionId: string, limit = 50): Promise<ChatMessage[]> {
-    const response = await api.get<ChatMessage[]>(`/api/v1/chat/sessions/${sessionId}/messages`, {
+    const response = await api.get<ChatMessage[]>(`/chat/sessions/${sessionId}/messages`, {
       params: { limit },
     })
     return response.data
@@ -40,7 +40,7 @@ export const chatService = {
 
   async sendMessage(sessionId: string, data: SendMessageData): Promise<ChatMessage> {
     const response = await api.post<ChatMessage>(
-      `/api/v1/chat/sessions/${sessionId}/messages`,
+      `/chat/sessions/${sessionId}/messages`,
       data
     )
     return response.data
@@ -52,7 +52,7 @@ export const chatService = {
     subjectId?: string
   ): Promise<{ answer: string; citations: Citation[]; tokens_used: number }> {
     const response = await api.post<{ answer: string; citations: Citation[]; tokens_used: number }>(
-      '/api/v1/chat/query',
+      '/chat/query',
       null,
       {
         params: {

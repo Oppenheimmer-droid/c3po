@@ -25,7 +25,7 @@ export const documentService = {
     if (data.difficulty) formData.append('difficulty', data.difficulty.toString())
     if (data.tags) formData.append('tags', data.tags.join(','))
 
-    const response = await api.post<Document>('/api/v1/documents/upload', formData, {
+    const response = await api.post<Document>('/documents/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -46,30 +46,30 @@ export const documentService = {
     status?: string
     subject_id?: string
   }): Promise<PaginatedResponse<Document>> {
-    const response = await api.get<PaginatedResponse<Document>>('/api/v1/documents', {
+    const response = await api.get<PaginatedResponse<Document>>('/documents', {
       params,
     })
     return response.data
   },
 
   async getDocument(documentId: string): Promise<Document> {
-    const response = await api.get<Document>(`/api/v1/documents/${documentId}`)
+    const response = await api.get<Document>(`/documents/${documentId}`)
     return response.data
   },
 
   async deleteDocument(documentId: string): Promise<void> {
-    await api.delete(`/api/v1/documents/${documentId}`)
+    await api.delete(`/documents/${documentId}`)
   },
 
   async getDocumentChunks(documentId: string, skip = 0, limit = 100): Promise<DocumentChunk[]> {
-    const response = await api.get<DocumentChunk[]>(`/api/v1/documents/${documentId}/chunks`, {
+    const response = await api.get<DocumentChunk[]>(`/documents/${documentId}/chunks`, {
       params: { skip, limit },
     })
     return response.data
   },
 
   async reprocessDocument(documentId: string): Promise<void> {
-    await api.post(`/api/v1/documents/${documentId}/reprocess`)
+    await api.post(`/documents/${documentId}/reprocess`)
   },
 }
 
