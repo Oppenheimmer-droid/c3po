@@ -9,7 +9,7 @@ from app.api.v1.router import api_router
 
 app = FastAPI(
     title="C3PO API",
-    version="1.0.0",
+    version="1.0.2",
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url=None,
 )
