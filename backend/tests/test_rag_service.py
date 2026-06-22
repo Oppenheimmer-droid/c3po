@@ -105,12 +105,18 @@ class TestOpenAIService:
     """Test cases for OpenAI Service."""
 
     def test_openai_service_initialization(self):
-        """Test OpenAI service can be initialized without API key."""
+        """Test OpenAI service can be initialized."""
         from app.services.openai_service import OpenAIService
         
+        # When empty API key is passed, should be in mock mode
         service = OpenAIService(api_key="")
         assert service.api_key == ""
-        assert service._client is None
+        assert service._mock_mode is True
+        
+        # When dummy key is passed but can't connect, should fallback to mock
+        service_dummy = OpenAIService(api_key="sk-test-dummy")
+        # It may have a key but can't connect, so should be mock mode
+        assert service_dummy._mock_mode is True or service_dummy._client is None
 
     def test_openai_is_available_false(self):
         """Test is_available returns False without API key."""
