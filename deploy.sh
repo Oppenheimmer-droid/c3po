@@ -2,16 +2,19 @@
 # =============================================================================
 # C3PO - Script de Despliegue Completo
 # =============================================================================
-# Este script despliega toda la plataforma C3PO usando Docker Compose.
+# Este script despliega toda la plataforma C3PO.
 #
-# Uso:
-#   ./deploy.sh           - Despliegue completo
-#   ./deploy.sh status     - Ver estado de los servicios
-#   ./deploy.sh logs       - Ver logs de todos los servicios
-#   ./deploy.sh stop       - Detener todos los servicios
-#   ./deploy.sh restart    - Reiniciar todos los servicios
-#   ./deploy.sh clean      - Eliminar todos los contenedores y volúmenes
-#   ./deploy.sh init-db    - Inicializar la base de datos
+# Uso Local (Docker):
+#   ./deploy.sh           - Despliegue local con Docker Compose
+#   ./deploy.sh status    - Ver estado de los servicios
+#   ./deploy.sh logs      - Ver logs de los servicios
+#   ./deploy.sh stop      - Detener todos los servicios
+#   ./deploy.sh clean     - Eliminar todos los contenedores y volúmenes
+#   ./deploy.sh init-db   - Inicializar la base de datos
+#
+# Uso Producción (Railway + Vercel):
+#   ./deploy.sh railway   - Desplegar backend a Railway
+#   ./deploy.sh vercel   - Desplegar frontend a Vercel
 # =============================================================================
 
 set -e
@@ -21,43 +24,37 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+CYAN='\033[0;36m'
+NC='\033[0m'
 
 # Función para imprimir mensajes
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
+# =============================================================================
+# FUNCIONES LOCALES (DOCKER)
+# =============================================================================
 
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Verificar que Docker esté corriendo
 check_docker() {
     if ! docker info > /dev/null 2>&1; then
         log_error "Docker no está corriendo. Iniciando dockerd..."
         sudo dockerd > /tmp/docker.log 2>&1 &
         sleep 5
         if ! docker info > /dev/null 2>&1; then
-            log_error "No se pudo iniciar Docker. Verifica los permisos."
+            log_error "No se pudo iniciar Docker."
             exit 1
         fi
     fi
     log_success "Docker está corriendo"
 }
 
-# Inicializar base de datos
 init_database() {
     log_info "Inicializando base de datos..."
-    cd "$(dirname "$0")/backend"
+    cd "$SCRIPT_DIR/backend"
     export PYTHONPATH="$(pwd):$PYTHONPATH"
     export DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/c3po"
     python init_db.py
@@ -65,28 +62,24 @@ init_database() {
     log_success "Base de datos inicializada"
 }
 
-# Desplegar servicios de infraestructura
 deploy_infrastructure() {
     log_info "Desplegando servicios de infraestructura..."
-    cd "$(dirname "$0")"
+    cd "$SCRIPT_DIR"
     sudo docker compose up -d postgres redis chromadb
     log_success "Servicios de infraestructura desplegados"
 }
 
-# Desplegar API
 deploy_api() {
     log_info "Desplegando API..."
+    cd "$SCRIPT_DIR"
     
-    # Compilar imagen si no existe
     if ! docker image inspect c3po-backend:dev > /dev/null 2>&1; then
         log_info "Compilando imagen del backend..."
         sudo docker build -f Dockerfile -t c3po-backend:dev .
     fi
     
-    # Detener contenedor anterior si existe
     sudo docker rm -f c3po-api 2>/dev/null || true
     
-    # Iniciar nuevo contenedor
     sudo docker run -d --name c3po-api \
         --network c3po_c3po-network \
         -p 8001:8000 \
@@ -107,20 +100,17 @@ deploy_api() {
     log_success "API desplegada en http://localhost:8001"
 }
 
-# Desplegar Frontend
-deploy_frontend() {
+deploy_frontend_local() {
     log_info "Desplegando Frontend..."
+    cd "$SCRIPT_DIR"
     
-    # Compilar imagen si no existe
     if ! docker image inspect c3po-frontend:dev > /dev/null 2>&1; then
         log_info "Compilando imagen del frontend..."
         sudo docker build -f Dockerfile.frontend -t c3po-frontend:dev --target development .
     fi
     
-    # Detener contenedor anterior si existe
     sudo docker rm -f c3po-frontend 2>/dev/null || true
     
-    # Iniciar nuevo contenedor
     sudo docker run -d --name c3po-frontend \
         --network c3po_c3po-network \
         -p 3000:3000 \
@@ -132,7 +122,6 @@ deploy_frontend() {
     log_success "Frontend desplegado en http://localhost:3000"
 }
 
-# Ver estado
 show_status() {
     echo ""
     echo "═══════════════════════════════════════════════════════════"
@@ -141,84 +130,99 @@ show_status() {
     echo ""
     sudo docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
     echo ""
-    echo "Endpoints:"
+    echo "Endpoints (Local):"
     echo "  - Backend API:    http://localhost:8001"
     echo "  - Backend Docs:   http://localhost:8001/docs"
     echo "  - Frontend:       http://localhost:3000"
-    echo "  - PostgreSQL:     localhost:5432"
-    echo "  - Redis:          localhost:6379"
-    echo "  - ChromaDB:       localhost:8000"
     echo ""
-    
-    # Verificar salud de servicios
-    echo "Verificación de salud:"
-    if curl -sf http://localhost:8001/api/v1/health > /dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Backend API"
-    else
-        echo -e "  ${RED}✗${NC} Backend API"
-    fi
-    
-    if curl -sf http://localhost:3000 > /dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Frontend"
-    else
-        echo -e "  ${RED}✗${NC} Frontend"
-    fi
-    
-    if sudo docker exec c3po-postgres pg_isready -U postgres > /dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} PostgreSQL"
-    else
-        echo -e "  ${RED}✗${NC} PostgreSQL"
-    fi
-    
-    if sudo docker exec c3po-redis redis-cli ping > /dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Redis"
-    else
-        echo -e "  ${RED}✗${NC} Redis"
-    fi
-    
+    echo "Production URLs:"
+    echo "  - Railway Backend: Configurar en Railway Dashboard"
+    echo "  - Vercel Frontend: Configurar en Vercel Dashboard"
     echo ""
 }
 
-# Mostrar logs
-show_logs() {
-    echo "═══════════════════════════════════════════════════════════"
-    echo "                        LOGS                               "
-    echo "═══════════════════════════════════════════════════════════"
-    sudo docker compose logs --tail=50
-}
+# =============================================================================
+# FUNCIONES PRODUCCIÓN (RAILWAY + VERCEL)
+# =============================================================================
 
-# Detener servicios
-stop_services() {
-    log_info "Deteniendo servicios..."
-    sudo docker compose down 2>/dev/null || true
-    sudo docker rm -f c3po-api c3po-frontend 2>/dev/null || true
-    log_success "Servicios detenidos"
-}
-
-# Reiniciar servicios
-restart_services() {
-    stop_services
-    deploy
-}
-
-# Limpiar todo
-clean_all() {
-    log_warning "Eliminando todos los contenedores y volúmenes..."
-    sudo docker compose down -v 2>/dev/null || true
-    sudo docker rm -f c3po-api c3po-frontend 2>/dev/null || true
-    sudo docker image prune -f
-    log_success "Limpieza completada"
-}
-
-# Despliegue completo
-deploy() {
-    log_info "Iniciando despliegue completo de C3PO..."
+deploy_railway() {
+    log_info "${CYAN}Desplegando backend a Railway...${NC}"
     echo ""
     
+    if ! command -v railway &> /dev/null; then
+        log_info "Instalando Railway CLI..."
+        npm i -g @railway/cli
+    fi
+    
+    cd "$SCRIPT_DIR/backend"
+    
+    if [ -z "$RAILWAY_TOKEN" ]; then
+        log_warning "RAILWAY_TOKEN no está configurado"
+        log_info "Ejecuta: railway login"
+        echo ""
+        echo "O configura el token en GitHub Secrets para CI/CD"
+        echo "Consulta: $SCRIPT_DIR/DEPLOY_RAILWAY_VERCEL.md"
+        return 1
+    fi
+    
+    railway up --service c3po-api
+    log_success "Backend desplegado a Railway"
+}
+
+deploy_vercel() {
+    log_info "${CYAN}Desplegando frontend a Vercel...${NC}"
+    echo ""
+    
+    if ! command -v vercel &> /dev/null; then
+        log_info "Instalando Vercel CLI..."
+        npm i -g vercel
+    fi
+    
+    cd "$SCRIPT_DIR/frontend"
+    
+    if [ -z "$VERCEL_TOKEN" ]; then
+        log_warning "VERCEL_TOKEN no está configurado"
+        log_info "Ejecuta: vercel login"
+        echo ""
+        echo "O configura el token en GitHub Secrets para CI/CD"
+        echo "Consulta: $SCRIPT_DIR/DEPLOY_RAILWAY_VERCEL.md"
+        return 1
+    fi
+    
+    vercel --prod --yes --token="$VERCEL_TOKEN"
+    log_success "Frontend desplegado a Vercel"
+}
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+show_help() {
+    echo "C3PO - Script de Despliegue"
+    echo ""
+    echo "Uso: $0 [comando]"
+    echo ""
+    echo "Despliegue Local (Docker):"
+    echo "  (sin argumento)   Desplegar todo localmente"
+    echo "  status            Ver estado de los servicios"
+    echo "  logs              Ver logs de los servicios"
+    echo "  stop              Detener todos los servicios"
+    echo "  clean             Eliminar contenedores y volúmenes"
+    echo "  init-db           Inicializar la base de datos"
+    echo ""
+    echo "Despliegue Producción:"
+    echo "  railway           Desplegar backend a Railway"
+    echo "  vercel            Desplegar frontend a Vercel"
+    echo ""
+    echo "Documentation:"
+    echo "  DEPLOY_RAILWAY_VERCEL.md - Guía completa de producción"
+    echo ""
+}
+
+local_deploy() {
     check_docker
     deploy_infrastructure
     
-    # Esperar a que servicios estén healthy
     log_info "Esperando a que PostgreSQL esté listo..."
     for i in {1..30}; do
         if sudo docker exec c3po-postgres pg_isready -U postgres > /dev/null 2>&1; then
@@ -236,48 +240,44 @@ deploy() {
     done
     
     deploy_api
-    deploy_frontend
+    deploy_frontend_local
     
     echo ""
     log_success "═══════════════════════════════════════════════════════════"
-    log_success "         DESPLIEGUE COMPLETADO EXITOSAMENTE"
+    log_success "    DESPLIEGUE LOCAL COMPLETADO"
     log_success "═══════════════════════════════════════════════════════════"
     echo ""
     show_status
 }
 
-# Mostrar ayuda
-show_help() {
-    echo "C3PO - Script de Despliegue Completo"
-    echo ""
-    echo "Uso: $0 [comando]"
-    echo ""
-    echo "Comandos disponibles:"
-    echo "  (sin argumento)  Desplegar todo el sistema"
-    echo "  status           Ver estado de los servicios"
-    echo "  logs             Ver logs de los servicios"
-    echo "  stop             Detener todos los servicios"
-    echo "  restart          Reiniciar todos los servicios"
-    echo "  clean            Eliminar contenedores y volúmenes"
-    echo "  init-db          Inicializar la base de datos"
-    echo "  help             Mostrar esta ayuda"
-    echo ""
+stop_services() {
+    log_info "Deteniendo servicios..."
+    cd "$SCRIPT_DIR"
+    sudo docker compose down 2>/dev/null || true
+    sudo docker rm -f c3po-api c3po-frontend 2>/dev/null || true
+    log_success "Servicios detenidos"
 }
 
-# Main
+clean_all() {
+    log_warning "Eliminando todos los contenedores y volúmenes..."
+    cd "$SCRIPT_DIR"
+    sudo docker compose down -v 2>/dev/null || true
+    sudo docker rm -f c3po-api c3po-frontend 2>/dev/null || true
+    sudo docker image prune -f
+    log_success "Limpieza completada"
+}
+
 case "${1:-}" in
     status)
         check_docker
         show_status
         ;;
     logs)
-        show_logs
+        cd "$SCRIPT_DIR"
+        sudo docker compose logs --tail=50
         ;;
     stop)
         stop_services
-        ;;
-    restart)
-        restart_services
         ;;
     clean)
         clean_all
@@ -286,11 +286,17 @@ case "${1:-}" in
         check_docker
         init_database
         ;;
+    railway)
+        deploy_railway
+        ;;
+    vercel)
+        deploy_vercel
+        ;;
     help|--help|-h)
         show_help
         ;;
     "")
-        deploy
+        local_deploy
         ;;
     *)
         log_error "Comando desconocido: $1"
