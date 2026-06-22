@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '@/services/api'
+import api from '@/lib/api'
 
 interface User {
   id: string

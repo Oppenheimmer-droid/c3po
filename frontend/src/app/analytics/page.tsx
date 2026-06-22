@@ -1,7 +1,13 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { api } from '@/services/api'
+import api from '@/lib/api'
+
+interface DailyActivity {
+  date: string
+  chats: number
+  users: number
+}
 
 interface AnalyticsData {
   total_users: number
@@ -9,7 +15,7 @@ interface AnalyticsData {
   total_documents: number
   total_tokens: number
   active_users: number
-  daily_activity: { date: string; chats: number; users: number }[]
+  daily_activity: DailyActivity[]
 }
 
 export default function AnalyticsPage() {
@@ -135,8 +141,8 @@ export default function AnalyticsPage() {
           <div className="bg-white rounded-2xl p-6 border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-6">Actividad Reciente</h3>
             <div className="h-64 flex items-end justify-around gap-2">
-              {displayAnalytics.daily_activity.map((day, i) => {
-                const maxChats = Math.max(...displayAnalytics.daily_activity.map(d => d.chats))
+              {displayAnalytics.daily_activity.map((day: DailyActivity, i: number) => {
+                const maxChats = Math.max(...displayAnalytics.daily_activity.map((d: DailyActivity) => d.chats))
                 const height = (day.chats / maxChats) * 100
                 return (
                   <div key={i} className="flex flex-col items-center gap-2 flex-1">

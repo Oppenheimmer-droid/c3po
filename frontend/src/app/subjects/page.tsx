@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { api } from '@/services/api'
+import api from '@/lib/api'
 
 interface Subject {
   id: string
@@ -96,7 +96,7 @@ export default function SubjectsPage() {
               </div>
               <div>
                 <div className="text-3xl font-bold text-gray-900">
-                  {displaySubjects.reduce((acc, s) => acc + s.topics_count, 0)}
+                  {displaySubjects.reduce((acc: number, s: Subject) => acc + s.topics_count, 0)}
                 </div>
                 <div className="text-gray-500">Temas</div>
               </div>
@@ -109,7 +109,7 @@ export default function SubjectsPage() {
               </div>
               <div>
                 <div className="text-3xl font-bold text-gray-900">
-                  {displaySubjects.reduce((acc, s) => acc + s.documents_count, 0)}
+                  {displaySubjects.reduce((acc: number, s: Subject) => acc + s.documents_count, 0)}
                 </div>
                 <div className="text-gray-500">Documentos</div>
               </div>
@@ -140,7 +140,7 @@ export default function SubjectsPage() {
               </button>
             </div>
           ) : (
-            displaySubjects.map((subject) => (
+            displaySubjects.map((subject: Subject) => (
               <div
                 key={subject.id}
                 className="bg-white rounded-2xl p-6 border border-gray-100 hover:border-primary-200 hover:shadow-lg transition-all cursor-pointer"
