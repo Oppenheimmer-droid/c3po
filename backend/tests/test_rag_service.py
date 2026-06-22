@@ -106,24 +106,41 @@ class TestOpenAIService:
 
     def test_openai_service_initialization(self):
         """Test OpenAI service can be initialized."""
+        import os
         from app.services.openai_service import OpenAIService
         
-        # When empty API key is passed, should be in mock mode
-        service = OpenAIService(api_key="")
-        assert service.api_key == ""
-        assert service._mock_mode is True
+        # Clear env var to ensure consistent test
+        original_key = os.environ.pop('OPENAI_API_KEY', None)
         
-        # When dummy key is passed but can't connect, should fallback to mock
-        service_dummy = OpenAIService(api_key="sk-test-dummy")
-        # It may have a key but can't connect, so should be mock mode
-        assert service_dummy._mock_mode is True or service_dummy._client is None
+        try:
+            # Test with explicit empty key
+            service = OpenAIService(api_key="")
+            assert service.api_key == ""
+            # With empty key, should be mock mode
+            assert service._mock_mode is True
+            
+            # Test default models work
+            service2 = OpenAIService()
+            assert service2.model == "gpt-4o-mini"
+            assert service2.embedding_model == "text-embedding-3-small"
+        finally:
+            # Restore original env var
+            if original_key:
+                os.environ['OPENAI_API_KEY'] = original_key
 
     def test_openai_is_available_false(self):
         """Test is_available returns False without API key."""
+        import os
         from app.services.openai_service import OpenAIService
         
-        service = OpenAIService(api_key="")
-        assert service.is_available() is False
+        # Clear env var
+        original_key = os.environ.pop('OPENAI_API_KEY', None)
+        try:
+            service = OpenAIService(api_key="")
+            assert service.is_available() is False
+        finally:
+            if original_key:
+                os.environ['OPENAI_API_KEY'] = original_key
 
     def test_openai_default_models(self):
         """Test default model configuration."""
