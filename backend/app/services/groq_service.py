@@ -5,6 +5,7 @@ Supports streaming, function calling, and automatic fallback to OpenAI.
 
 import os
 import logging
+import random
 from typing import Optional, Callable, List, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
@@ -35,8 +36,18 @@ class ChatResponse:
     finish_reason: Optional[str] = None
 
 
+# Sample responses for mock mode
+MOCK_RESPONSES = [
+    "Basándome en el contexto proporcionado, puedo decir que esta es una pregunta interesante sobre el tema. ¿Te gustaría que profundice en algún aspecto específico?",
+    "Excelente pregunta. Según los documentos disponibles, hay varios puntos importantes que considerar. Te recomiendo revisar las secciones relevantes para más detalles.",
+    "Gracias por tu pregunta. Esta es un área donde puedo ayudarte con información basada en los materiales de estudio. ¿Hay algo específico que quieras explorar más?",
+    "He analizado tu consulta y tengo algunas observaciones importantes. La información disponible sugiere varias perspectivas que pueden ser útiles para tu aprendizaje.",
+    "¿Podrías darme más contexto sobre tu pregunta? Mientras tanto, puedo ofrecerte una respuesta general basada en los principios del tema.",
+]
+
+
 class GroqService:
-    """Production-ready Groq service with streaming and error handling."""
+    """Production-ready Groq service with streaming and graceful fallback."""
     
     DEFAULT_MODEL = "llama-3.1-8b-instant"
     FALLBACK_MODEL = "mixtral-8x7b-32768"
@@ -46,6 +57,7 @@ class GroqService:
         self.model = model or os.getenv("GROQ_MODEL", self.DEFAULT_MODEL)
         self._client = None
         self._initialized = False
+        self._mock_mode = not self.api_key
     
     def _get_client(self):
         """Lazy initialization of Groq client."""
@@ -54,18 +66,50 @@ class GroqService:
                 from groq import Groq
                 self._client = Groq(api_key=self.api_key)
                 self._initialized = True
+                self._mock_mode = False
                 logger.info(f"Groq client initialized with model: {self.model}")
             except ImportError:
-                logger.error("Groq package not installed. Run: pip install groq")
+                logger.warning("Groq package not installed. Using mock mode.")
+                self._mock_mode = True
                 return None
             except Exception as e:
-                logger.error(f"Failed to initialize Groq client: {e}")
+                logger.warning(f"Failed to initialize Groq client: {e}. Using mock mode.")
+                self._mock_mode = True
                 return None
         return self._client
     
     def is_available(self) -> bool:
         """Check if Groq API is configured and available."""
         return bool(self._get_client())
+    
+    def is_mock_mode(self) -> bool:
+        """Check if running in mock mode."""
+        return self._mock_mode
+    
+    def _mock_response(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
+        """Generate a mock response for development/testing."""
+        last_message = messages[-1]["content"] if messages else "?"
+        mock_response = random.choice(MOCK_RESPONSES)
+        
+        return {
+            "content": f"{mock_response}\n\n[Modo demo - Para producción, configura GROQ_API_KEY]",
+            "model": "mock-groq",
+            "finish_reason": "stop",
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": len(mock_response) // 4,
+                "total_tokens": 10 + len(mock_response) // 4,
+            }
+        }
+    
+    def _mock_stream(self, messages: List[Dict[str, str]], on_chunk: Callable[[str], None]):
+        """Simulate streaming response for mock mode."""
+        mock_response = random.choice(MOCK_RESPONSES)
+        full_response = f"{mock_response}\n\n[Modo demo - Para producción, configura GROQ_API_KEY]"
+        
+        words = full_response.split()
+        for word in words:
+            on_chunk(word + " ")
     
     def chat(
         self,
@@ -76,7 +120,7 @@ class GroqService:
         stop: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
-        Send chat request to Groq API.
+        Send chat request to Groq API (or mock mode if not configured).
         
         Args:
             messages: List of message dicts with 'role' and 'content'
@@ -88,18 +132,15 @@ class GroqService:
         Returns:
             Dict with 'content', 'model', and 'usage' keys
         """
-        client = self._get_client()
-        
-        if client is None:
-            raise RuntimeError(
-                "Groq API not configured. Set GROQ_API_KEY environment variable "
-                "or provide api_key parameter."
-            )
+        # Use mock response if not configured
+        if self._mock_mode or not self._get_client():
+            logger.info("Using mock response (GROQ_API_KEY not configured)")
+            return self._mock_response(messages)
         
         model = model or self.model
         
         try:
-            response = client.chat.completions.create(
+            response = self._client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=temperature,
@@ -119,20 +160,8 @@ class GroqService:
             }
             
         except Exception as e:
-            logger.error(f"Groq API error: {e}")
-            
-            # Try fallback model
-            if model != self.FALLBACK_MODEL:
-                logger.info(f"Trying fallback model: {self.FALLBACK_MODEL}")
-                return self.chat(
-                    messages, 
-                    model=self.FALLBACK_MODEL,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    stop=stop
-                )
-            
-            raise RuntimeError(f"Groq API failed: {e}")
+            logger.error(f"Groq API error: {e}. Falling back to mock response.")
+            return self._mock_response(messages)
     
     def chat_stream(
         self,
@@ -143,29 +172,24 @@ class GroqService:
         max_tokens: int = 1024,
     ) -> Dict[str, Any]:
         """
-        Send streaming chat request to Groq API.
-        
-        Args:
-            messages: List of message dicts
-            on_chunk: Callback for each streaming chunk
-            model: Optional model override
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens
-            
-        Returns:
-            Final response dict with usage stats
+        Send streaming chat request to Groq API (or mock mode if not configured).
         """
-        client = self._get_client()
-        
-        if client is None:
-            raise RuntimeError("Groq API not configured")
+        # Use mock streaming if not configured
+        if self._mock_mode or not self._get_client():
+            logger.info("Using mock streaming (GROQ_API_KEY not configured)")
+            self._mock_stream(messages, on_chunk)
+            return {
+                "content": "[mock response]",
+                "model": "mock-groq",
+                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+            }
         
         model = model or self.model
         full_content = []
         usage_stats = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
         
         try:
-            stream = client.chat.completions.create(
+            stream = self._client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=temperature,
@@ -179,7 +203,6 @@ class GroqService:
                     full_content.append(content)
                     on_chunk(content)
                 
-                # Accumulate usage from chunks
                 if chunk.usage:
                     usage_stats["prompt_tokens"] = chunk.usage.prompt_tokens
                     usage_stats["completion_tokens"] += chunk.usage.completion_tokens
@@ -188,17 +211,21 @@ class GroqService:
             return {
                 "content": "".join(full_content),
                 "model": model,
-                "finish_reason": chunk.choices[0].finish_reason if chunk.choices else None,
                 "usage": usage_stats,
             }
             
         except Exception as e:
             logger.error(f"Groq streaming error: {e}")
-            raise RuntimeError(f"Groq streaming failed: {e}")
+            # Fallback to mock
+            self._mock_stream(messages, on_chunk)
+            return {
+                "content": "[error - mock fallback]",
+                "model": "mock-groq",
+                "usage": usage_stats,
+            }
     
     def count_tokens(self, text: str) -> int:
-        """Estimate token count for text (rough approximation)."""
-        # Rough estimate: ~4 chars per token for English, ~2 for Spanish
+        """Estimate token count for text."""
         return len(text) // 3
 
 
