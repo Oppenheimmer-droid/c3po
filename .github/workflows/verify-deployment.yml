@@ -28,22 +28,23 @@ jobs:
       working-directory: ./backend
       run: ruff check . --select E,W,F || true
     
-    - name: Verify Dockerfile
+    - name: Verify railway.toml
       working-directory: ./backend
       run: |
-        if [ ! -f "Dockerfile" ]; then
-          echo "Error: Dockerfile not found"
+        if [ ! -f "railway.toml" ]; then
+          echo "Error: railway.toml not found"
           exit 1
         fi
-        docker build --target development -t backend-test . || true
-    
-    - name: Verify railway.json
+        echo "railway.toml exists"
+
+    - name: Verify requirements.txt
+      working-directory: ./backend
       run: |
-        if [ ! -f "railway.json" ]; then
-          echo "Error: railway.json not found"
+        if [ ! -f "requirements.txt" ]; then
+          echo "Error: requirements.txt not found"
           exit 1
         fi
-        python -m json.tool railway.json > /dev/null
+        echo "requirements.txt exists"
 
   verify-frontend:
     runs-on: ubuntu-latest
@@ -54,7 +55,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
     
     - name: Install dependencies
       working-directory: ./frontend
@@ -69,12 +70,14 @@ jobs:
       run: npm run build
     
     - name: Verify vercel.json
+      working-directory: ./frontend
       run: |
         if [ ! -f "vercel.json" ]; then
           echo "Error: vercel.json not found"
           exit 1
         fi
         python -m json.tool vercel.json > /dev/null
+        echo "vercel.json is valid"
 
   verify-docs:
     runs-on: ubuntu-latest
@@ -86,4 +89,6 @@ jobs:
       run: |
         if [ ! -f "DEPLOY_STEPS.md" ]; then
           echo "Warning: DEPLOY_STEPS.md not found"
+        else
+          echo "DEPLOY_STEPS.md exists"
         fi
