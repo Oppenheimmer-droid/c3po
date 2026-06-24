@@ -5,48 +5,34 @@ on:
     branches: [ main ]
     paths:
       - 'backend/**'
-      - '.github/workflows/deploy-railway.yml'
   workflow_dispatch:
 
 jobs:
-  deploy-backend:
+  notify-railway-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Railway CLI via npm
-        run: npm install -g @railway/cli
-
-      - name: Login to Railway
-        run: railway login --token=${{ secrets.RAILWAY_TOKEN }}
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Deploy to Railway
-        run: railway up --service backend --dir backend
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Verify Deployment Status
-        run: |
-          echo "Waiting for Railway deployment..."
-          sleep 30
-          echo "Checking backend health..."
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://c3po-production-0c24.up.railway.app/api/v1/health || echo "000")
-          echo "HTTP Status: $HTTP_CODE"
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Backend is healthy!"
-          else
-            echo "⚠️ Backend returned status $HTTP_CODE. Check Railway dashboard."
-          fi
-
-      - name: Deployment Summary
+      - name: Notify Railway Status
         run: |
           echo "==========================================="
-          echo "Railway Deployment Summary"
+          echo "Railway Backend Deployment"
           echo "==========================================="
-          echo "Backend URL: https://c3po-production-0c24.up.railway.app"
-          echo "Health Check: /api/v1/health"
-          echo "Railway Dashboard: https://railway.app/dashboard"
+          echo ""
+          echo "⚠️  Railway has GitHub integration enabled."
+          echo "    Deployments are triggered automatically"
+          echo "    when backend code changes."
+          echo ""
+          echo "📋 To check deployment status:"
+          echo "   1. Go to: https://railway.app/dashboard"
+          echo "   2. Select your project"
+          echo "   3. Check the Deployments tab"
+          echo ""
+          echo "🔧 Required Environment Variables in Railway:"
+          echo "   - DATABASE_URL"
+          echo "   - SECRET_KEY"
+          echo "   - GROQ_API_KEY"
+          echo "   - ENVIRONMENT=production"
+          echo "   - DEBUG=false"
+          echo ""
+          echo "📊 Backend Health Check:"
+          curl -s -o /dev/null -w "   HTTP Status: %{http_code}\n" https://c3po-production-0c24.up.railway.app/api/v1/health || echo "   Unable to connect"
           echo "==========================================="
