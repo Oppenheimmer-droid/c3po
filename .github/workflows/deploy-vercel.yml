@@ -25,4 +25,8 @@ jobs:
       - name: Deploy to Vercel Production
         run: |
           npm install -g vercel@latest
-          cd frontend && vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+          # Clean any cached Vercel configuration
+          rm -rf .vercel frontend/.vercel 2>/dev/null || true
+          cd frontend
+          # Explicitly set the project root (current directory)
+          vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }} --project-name frontend
