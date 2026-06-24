@@ -109,20 +109,28 @@ log_info "[5/6] Instalando Backend..."
 
 cd "$BACKEND_DIR"
 
-# En Termux, no usamos venv - instalamos directamente con --break-system-packages
-# Esto es necesario porque Termux tiene un sistema de paquetes especial
+# En Termux, usamos requirements-termux.txt que no requiere chromadb
+# (chromaDB requiere Rust compiler que no está disponible fácilmente en Termux)
 
 # Actualizar pip
 pip install --upgrade pip --break-system-packages 2>/dev/null || pip install --upgrade pip 2>/dev/null || true
 
-# Instalar dependencias con --break-system-packages para Termux
-if pip install -q --break-system-packages -r requirements.txt 2>/dev/null; then
-    log_success "Dependencias instaladas (break-system-packages)"
-elif pip install -q -r requirements.txt --user 2>/dev/null; then
-    log_success "Dependencias instaladas (user mode)"
+# Usar requirements-termux.txt que omite chromadb
+if [ -f "requirements-termux.txt" ]; then
+    log_info "Instalando dependencias para Termux (sin chromadb)..."
+    if pip install -q --break-system-packages -r requirements-termux.txt 2>/dev/null; then
+        log_success "Dependencias instaladas"
+    elif pip install -q -r requirements-termux.txt 2>/dev/null; then
+        log_success "Dependencias instaladas"
+    else
+        log_warning "Instalando con flags alternativos..."
+        pip install -q -r requirements-termux.txt || true
+    fi
 else
-    log_warning "Instalando dependencias sin flags especiales..."
-    pip install -q -r requirements.txt || true
+    # Fallback al requirements normal
+    log_warning "requirements-termux.txt no encontrado, usando requirements.txt..."
+    pip install -q --break-system-packages -r requirements.txt 2>/dev/null || \
+    pip install -q -r requirements.txt 2>/dev/null || true
 fi
 
 # Crear directorio de datos
