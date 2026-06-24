@@ -51,8 +51,9 @@ echo ""
 log_info "[2/6] Instalando paquetes base..."
 BASE_PACKAGES="git curl wget nano unzip python python-pip nodejs npm"
 DATABASE_PACKAGES="postgresql redis"
+RUST_PACKAGES="clang make rust"
 
-for pkg in $BASE_PACKAGES $DATABASE_PACKAGES; do
+for pkg in $BASE_PACKAGES; do
     if dpkg -l | grep -q "^ii  $pkg "; then
         echo "  - $pkg (ya instalado)"
     else
@@ -61,18 +62,57 @@ for pkg in $BASE_PACKAGES $DATABASE_PACKAGES; do
     fi
 done
 
-# Asegurar que postgresql esté instalado
+# Asegurar que postgresql y redis estén instalados
 pkg install -y postgresql redis 2>/dev/null || true
+
+# Instalar Rust (necesario para compilar paquetes Python)
+echo ""
+log_info "Verificando Rust..."
+if ! command -v rustc &> /dev/null || ! rustup show 2>/dev/null | grep -q "stable"; then
+    log_info "Instalando/configurando Rust (requerido para compilar paquetes Python)..."
+    pkg install -y clang make rust 2>/dev/null || true
+    
+    # Configurar rustup
+    export PATH="$PREFIX/bin:$HOME/.cargo/bin:$PATH"
+    if command -v rustup &> /dev/null; then
+        rustup default stable 2>/dev/null || true
+        rustup update stable 2>/dev/null || true
+    fi
+fi
+
+# Verificar Rust
+if command -v rustc &> /dev/null && rustc --version | grep -q "stable"; then
+    log_success "Rust instalado: $(rustc --version | cut -d' ' -f2)"
+else
+    log_warning "Rust no disponible, algunas dependencias pueden fallar"
+fi
+
 log_success "Paquetes instalados"
 
 # =============================================================================
-# 3. Configurar Python
+# 3. Configurar Python y Rust
 # =============================================================================
 echo ""
-log_info "[3/6] Configurando Python..."
+log_info "[3/6] Configurando Python y Rust..."
+
+# Configurar PATH para incluir Rust
+export PATH="$PREFIX/bin:$HOME/.cargo/bin:$PATH"
+
+# Configurar variables de entorno para compilación
+export CARGO_HOME="$HOME/.cargo"
+export RUSTUP_HOME="$HOME/.rustup"
+
+# Verificar y configurar Rust
+if command -v rustup &> /dev/null; then
+    log_info "Configurando rustup..."
+    rustup default stable 2>/dev/null || true
+fi
+
+# Actualizar pip
 pip install --upgrade pip setuptools wheel --break-system-packages 2>/dev/null || \
     pip install --upgrade pip setuptools wheel 2>/dev/null || true
-log_success "Python configurado"
+
+log_success "Python y Rust configurados"
 
 # =============================================================================
 # 4. Clonar/Actualizar proyecto
@@ -109,15 +149,29 @@ log_info "[5/6] Instalando Backend..."
 
 cd "$BACKEND_DIR"
 
-# En Termux, usamos requirements-termux.txt que no requiere chromadb
-# (chromaDB requiere Rust compiler que no está disponible fácilmente en Termux)
+# Configurar PATH para Rust
+export PATH="$PREFIX/bin:$HOME/.cargo/bin:$PATH"
+export CARGO_HOME="$HOME/.cargo"
+export RUSTUP_HOME="$HOME/.rustup"
+
+# Verificar Rust
+if command -v rustc &> /dev/null; then
+    log_info "Rust detectado: $(rustc --version | cut -d' ' -f1,2)"
+    if ! rustup show 2>/dev/null | grep -q "stable"; then
+        log_info "Configurando rustup stable..."
+        rustup default stable 2>/dev/null || true
+    fi
+else
+    log_warning "Rust no encontrado - algunas dependencias pueden fallar"
+fi
 
 # Actualizar pip
-pip install --upgrade pip --break-system-packages 2>/dev/null || pip install --upgrade pip 2>/dev/null || true
+pip install --upgrade pip --break-system-packages 2>/dev/null || \
+    pip install --upgrade pip 2>/dev/null || true
 
-# Usar requirements-termux.txt que omite chromadb
+# Usar requirements-termux.txt que omite chromadb y ruff
 if [ -f "requirements-termux.txt" ]; then
-    log_info "Instalando dependencias para Termux (sin chromadb)..."
+    log_info "Instalando dependencias para Termux (sin chromadb, ruff)..."
     if pip install -q --break-system-packages -r requirements-termux.txt 2>/dev/null; then
         log_success "Dependencias instaladas"
     elif pip install -q -r requirements-termux.txt 2>/dev/null; then
