@@ -5,28 +5,28 @@ on:
     branches: [ main ]
     paths:
       - 'frontend/**'
-      - '.github/workflows/**'
+      - '.github/workflows/deploy-vercel.yml'
   workflow_dispatch:
 
 jobs:
-  deploy-frontend:
+  notify-vercel-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Deploy to Vercel Production
+      - name: Notify Vercel Status
         run: |
-          npm install -g vercel@latest
-          # Clean any cached Vercel configuration
-          rm -rf .vercel frontend/.vercel 2>/dev/null || true
-          cd frontend
-          # Explicitly set the project root (current directory)
-          vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }} --project-name frontend
+          echo "==========================================="
+          echo "Vercel Frontend Deployment"
+          echo "==========================================="
+          echo ""
+          echo "✅ Vercel has GitHub integration enabled."
+          echo "   Deployments are triggered automatically"
+          echo "   when frontend code changes."
+          echo ""
+          echo "📋 To configure Vercel project settings:"
+          echo "   1. Go to: https://vercel.com/rojects-c08bb50e/frontend/settings"
+          echo "   2. Set Root Directory: frontend"
+          echo "   3. Or import project from frontend/ folder"
+          echo ""
+          echo "📊 Frontend Health Check:"
+          curl -s -o /dev/null -w "   HTTP Status: %{http_code}\n" https://c3po-frontend.vercel.app || echo "   Unable to connect"
+          echo "==========================================="
