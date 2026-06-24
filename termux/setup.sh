@@ -1,14 +1,11 @@
 #!/bin/bash
-# ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║                   C3PO - TERMUX SETUP SCRIPT                          ║
-# ║               Install dependencies for Android (Termux)                  ║
-# ╚═══════════════════════════════════════════════════════════════════════════╝
+# =============================================================================
+# C3PO - Termux Setup Script
+# =============================================================================
+# Este script configura C3PO en Termux (Android)
 #
-# USO: bash setup.sh
-#
-# Este script instala todas las dependencias necesarias para ejecutar C3PO
-# en Termux (Android).
-#
+# Usage: bash setup.sh
+# =============================================================================
 
 set -e
 
@@ -20,105 +17,237 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-# Directorio del proyecto
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Funciones de logging
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-echo -e "${CYAN}"
+# Banner
+echo ""
 echo "╔══════════════════════════════════════════════════════════════════════╗"
-echo "║              C3PO - TERMUX SETUP SCRIPT                          ║"
+echo "║              C3PO - TERMUX SETUP SCRIPT                            ║"
 echo "║              Version 2.1.0                                        ║"
 echo "╚══════════════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
+echo ""
 
-# Verificar Termux
-if [ ! -d "/data/data/com.termux" ]; then
-    echo -e "${RED}✗ Error: Este script debe ejecutarse en Termux${NC}"
-    exit 1
-fi
+# Detectar directorio del proyecto
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+BACKEND_DIR="$PROJECT_DIR/backend"
 
-# Actualizar paquetes
-echo -e "${GREEN}[1/5]${NC} Actualizando paquetes..."
+# =============================================================================
+# 1. Actualizar paquetes
+# =============================================================================
+echo ""
+log_info "[1/6] Actualizando paquetes..."
 pkg update -y && pkg upgrade -y
+log_success "Paquetes actualizados"
 
-# Instalar paquetes base
-echo -e "${GREEN}[2/5]${NC} Instalando paquetes base..."
-pkg install -y git curl wget nano unzip python python-pip nodejs npm postgresql redis bash-completion
+# =============================================================================
+# 2. Instalar paquetes base
+# =============================================================================
+echo ""
+log_info "[2/6] Instalando paquetes base..."
+BASE_PACKAGES="git curl wget nano unzip python python-pip nodejs npm"
+DATABASE_PACKAGES="postgresql redis"
+RUST_PACKAGES="clang make rust"
 
-# Configurar Python
-echo -e "${GREEN}[3/5]${NC} Configurando Python..."
-mkdir -p ~/.config/pip
-cat > ~/.config/pip/pip.conf << 'EOF'
-[global]
-user = true
-break-system-packages = true
-EOF
-pip install --upgrade pip setuptools wheel
+for pkg in $BASE_PACKAGES; do
+    if dpkg -l | grep -q "^ii  $pkg "; then
+        echo "  - $pkg (ya instalado)"
+    else
+        echo "  - Instalando $pkg..."
+        pkg install -y $pkg 2>/dev/null || log_warning "  $pkg no disponible o ya instalado"
+    fi
+done
 
-# Instalar backend
-echo -e "${GREEN}[4/5]${NC} Instalando Backend..."
-cd "$SCRIPT_DIR/backend"
-if [ ! -d "venv" ]; then
-    python -m venv venv
-fi
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
+# Asegurar que postgresql y redis estén instalados
+pkg install -y postgresql redis 2>/dev/null || true
 
-# Crear archivo .env si no existe
-if [ ! -f ".env" ]; then
-    cat > .env << 'EOF'
-ENVIRONMENT=development
-DEBUG=true
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/c3po
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=c3po
-REDIS_URL=redis://localhost:6379/0
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/0
-SECRET_KEY=change-me-in-production-use-openssl-rand-hex-32
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-AI_PROVIDER=groq
-GROQ_API_KEY=your-groq-api-key-here
-OPENAI_API_KEY=
-CHROMA_HOST=localhost
-CHROMA_PORT=8000
-CHROMA_USE_CLOUD=false
-CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-EOF
-    echo -e "${YELLOW}⚠ Archivo .env creado. EDITALO y añade tu GROQ_API_KEY${NC}"
+# Instalar Rust (necesario para compilar paquetes Python)
+echo ""
+log_info "Verificando Rust..."
+if ! command -v rustc &> /dev/null || ! rustup show 2>/dev/null | grep -q "stable"; then
+    log_info "Instalando/configurando Rust (requerido para compilar paquetes Python)..."
+    pkg install -y clang make rust 2>/dev/null || true
+    
+    # Configurar rustup
+    export PATH="$PREFIX/bin:$HOME/.cargo/bin:$PATH"
+    if command -v rustup &> /dev/null; then
+        rustup default stable 2>/dev/null || true
+        rustup update stable 2>/dev/null || true
+    fi
 fi
 
-# Instalar frontend
-echo -e "${GREEN}[5/5]${NC} Instalando Frontend..."
-cd "$SCRIPT_DIR/frontend"
-npm install
+# Verificar Rust
+if command -v rustc &> /dev/null && rustc --version | grep -q "stable"; then
+    log_success "Rust instalado: $(rustc --version | cut -d' ' -f2)"
+else
+    log_warning "Rust no disponible, algunas dependencias pueden fallar"
+fi
 
-# Volver al directorio del proyecto
-cd "$SCRIPT_DIR"
+log_success "Paquetes instalados"
 
-# Hacer ejecutables los scripts
-chmod +x *.sh 2>/dev/null || true
+# =============================================================================
+# 3. Configurar Python y Rust
+# =============================================================================
+echo ""
+log_info "[3/6] Configurando Python y Rust..."
 
+# Configurar PATH para incluir Rust
+export PATH="$PREFIX/bin:$HOME/.cargo/bin:$PATH"
+
+# Configurar variables de entorno para compilación
+export CARGO_HOME="$HOME/.cargo"
+export RUSTUP_HOME="$HOME/.rustup"
+
+# Verificar y configurar Rust
+if command -v rustup &> /dev/null; then
+    log_info "Configurando rustup..."
+    rustup default stable 2>/dev/null || true
+fi
+
+# Actualizar pip
+pip install --upgrade pip setuptools wheel --break-system-packages 2>/dev/null || \
+    pip install --upgrade pip setuptools wheel 2>/dev/null || true
+
+log_success "Python y Rust configurados"
+
+# =============================================================================
+# 4. Clonar/Actualizar proyecto
+# =============================================================================
 echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════════════════════════════════╗"
-echo "║              ✓ INSTALACIÓN COMPLETADA                              ║"
-echo "╚══════════════════════════════════════════════════════════════════════╝${NC}"
+log_info "[4/6] Preparando proyecto..."
+
+# Crear directorio de trabajo
+mkdir -p ~/c3po-termux
+
+# Si ya existe, actualizar
+if [ -d "$PROJECT_DIR/.git" ]; then
+    log_info "Proyecto ya existe, actualizando..."
+    cd "$PROJECT_DIR"
+    git pull origin main 2>/dev/null || git pull origin deploy 2>/dev/null || true
+    cd - > /dev/null
+else
+    log_info "Clonando proyecto..."
+    cd ~
+    rm -rf c3po-termux 2>/dev/null || true
+    git clone https://github.com/Oppenheimmer-droid/c3po.git c3po-termux
+    cd c3po-termux
+    PROJECT_DIR="$HOME/c3po-termux"
+    BACKEND_DIR="$PROJECT_DIR/backend"
+fi
+
+log_success "Proyecto preparado en $PROJECT_DIR"
+
+# =============================================================================
+# 5. Instalar dependencias del backend
+# =============================================================================
 echo ""
-echo -e "${BOLD}SIGUIENTES PASOS:${NC}"
+log_info "[5/6] Instalando Backend..."
+
+cd "$BACKEND_DIR"
+
+# Configurar PATH para Rust
+export PATH="$PREFIX/bin:$HOME/.cargo/bin:$PATH"
+export CARGO_HOME="$HOME/.cargo"
+export RUSTUP_HOME="$HOME/.rustup"
+
+# Verificar Rust
+if command -v rustc &> /dev/null; then
+    log_info "Rust detectado: $(rustc --version | cut -d' ' -f1,2)"
+    if ! rustup show 2>/dev/null | grep -q "stable"; then
+        log_info "Configurando rustup stable..."
+        rustup default stable 2>/dev/null || true
+    fi
+else
+    log_warning "Rust no encontrado - algunas dependencias pueden fallar"
+fi
+
+# Actualizar pip
+pip install --upgrade pip --break-system-packages 2>/dev/null || \
+    pip install --upgrade pip 2>/dev/null || true
+
+# Usar requirements-termux.txt que omite chromadb y ruff
+if [ -f "requirements-termux.txt" ]; then
+    log_info "Instalando dependencias para Termux (sin chromadb, ruff)..."
+    if pip install -q --break-system-packages -r requirements-termux.txt 2>/dev/null; then
+        log_success "Dependencias instaladas"
+    elif pip install -q -r requirements-termux.txt 2>/dev/null; then
+        log_success "Dependencias instaladas"
+    else
+        log_warning "Instalando con flags alternativos..."
+        pip install -q -r requirements-termux.txt || true
+    fi
+else
+    # Fallback al requirements normal
+    log_warning "requirements-termux.txt no encontrado, usando requirements.txt..."
+    pip install -q --break-system-packages -r requirements.txt 2>/dev/null || \
+    pip install -q -r requirements.txt 2>/dev/null || true
+fi
+
+# Crear directorio de datos
+mkdir -p ~/../usr/var/lib/postgresql
+mkdir -p ~/c3po-data/uploads
+mkdir -p ~/c3po-data/chroma
+
+cd - > /dev/null
+log_success "Backend instalado"
+
+# =============================================================================
+# 6. Crear scripts de conveniencia
+# =============================================================================
 echo ""
-echo "1. ${YELLOW}Configura tu API Key de Groq:${NC}"
-echo "   nano backend/.env"
-echo "   → Edita: GROQ_API_KEY=gsk_tu_key_real"
+log_info "[6/6] Creando scripts..."
+
+# Copiar scripts de termux
+cp "$SCRIPT_DIR"/*.sh "$PROJECT_DIR/" 2>/dev/null || true
+
+# Crear .env si no existe
+if [ ! -f "$BACKEND_DIR/.env" ]; then
+    if [ -f "$PROJECT_DIR/.env.example" ]; then
+        cp "$PROJECT_DIR/.env.example" "$BACKEND_DIR/.env"
+        log_info "Creado archivo .env desde plantilla"
+        log_warning "Recuerda configurar tu GROQ_API_KEY en backend/.env"
+    fi
+fi
+
+# Hacer scripts ejecutables
+chmod +x "$PROJECT_DIR"/*.sh 2>/dev/null || true
+
+log_success "Scripts creados"
+
+# =============================================================================
+# Resumen
+# =============================================================================
 echo ""
-echo "2. ${YELLOW}Inicializa la base de datos:${NC}"
-echo "   bash init-db.sh"
+echo "╔══════════════════════════════════════════════════════════════════════╗"
+echo "║                      CONFIGURACIÓN COMPLETADA                     ║"
+echo "╚══════════════════════════════════════════════════════════════════════╝"
 echo ""
-echo "3. ${YELLOW}Inicia todos los servicios:${NC}"
-echo "   bash start.sh"
+echo "📁 Proyecto: $PROJECT_DIR"
 echo ""
-echo "4. ${YELLOW}Abre en tu navegador:${NC}"
-echo "   http://localhost:3000"
+echo "📋 Próximos pasos:"
 echo ""
-echo -e "${GREEN}¡Disfruta C3PO en tu Android! 🎓${NC}"
+echo "  1. Configurar tu API Key de Groq:"
+echo "     nano $BACKEND_DIR/.env"
+echo "     Edita: GROQ_API_KEY=gsk_tu_key_real"
+echo ""
+echo "  2. Inicializar la base de datos:"
+echo "     cd $PROJECT_DIR"
+echo "     bash init-db.sh"
+echo ""
+echo "  3. Iniciar C3PO:"
+echo "     bash start.sh"
+echo ""
+echo "  4. Abrir en navegador:"
+echo "     http://localhost:3000"
+echo ""
+echo "  📖 Comandos disponibles:"
+echo "     bash start.sh    - Iniciar todos los servicios"
+echo "     bash stop.sh     - Detener todos los servicios"
+echo "     bash status.sh   - Ver estado de los servicios"
+echo ""
+log_success "¡Setup completado!"
+echo ""

@@ -1,49 +1,53 @@
 #!/bin/bash
-# ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║               C3PO - DETENER TODOS LOS SERVICIOS                   ║
-# ╚═══════════════════════════════════════════════════════════════════════════╝
+# =============================================================================
+# C3PO - Stop Script
+# =============================================================================
+# Detiene todos los servicios de C3PO
+#
+# Usage: bash stop.sh
+# =============================================================================
 
-CYAN='\033[0;36m'
+set -e
+
+# Colores
+RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-RED='\033[0;31m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${CYAN}"
-echo "╔══════════════════════════════════════════════════════════════════════╗"
-echo "║                DETENIENDO SERVICIOS C3PO                      ║"
-echo "╚══════════════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
-
-# Detener Backend
-if pgrep -f "uvicorn.*app.main:app" > /dev/null; then
-    echo -e "${YELLOW}Deteniendo Backend...${NC}"
-    pkill -f "uvicorn.*app.main:app" 2>/dev/null || true
-    echo -e "${GREEN}✓ Backend detenido${NC}"
-else
-    echo -e "${CYAN}Backend no estaba corriendo${NC}"
-fi
-
-# Detener Frontend
-if pgrep -f "next dev" > /dev/null; then
-    echo -e "${YELLOW}Deteniendo Frontend...${NC}"
-    pkill -f "next dev" 2>/dev/null || true
-    echo -e "${GREEN}✓ Frontend detenido${NC}"
-else
-    echo -e "${CYAN}Frontend no estaba corriendo${NC}"
-fi
-
-# Detener Redis
-if pgrep -x "redis-server" > /dev/null; then
-    echo -e "${YELLOW}Deteniendo Redis...${NC}"
-    redis-cli shutdown 2>/dev/null || pkill -x redis-server 2>/dev/null || true
-    echo -e "${GREEN}✓ Redis detenido${NC}"
-else
-    echo -e "${CYAN}Redis no estaba corriendo${NC}"
-fi
-
-# Limpiar PIDs
-rm -f /tmp/c3po_backend.pid /tmp/c3po_frontend.pid
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 
 echo ""
-echo -e "${GREEN}✓ Todos los servicios detenidos${NC}"
+echo "╔══════════════════════════════════════════════════════════════════════╗"
+echo "║                    C3PO - STOPPING SERVICES                    ║"
+echo "╚══════════════════════════════════════════════════════════════════════╝"
+echo ""
+
+# Detener Backend
+log_info "Deteniendo Backend API..."
+pkill -f "uvicorn app.main:app" 2>/dev/null || true
+pkill -f "python.*uvicorn" 2>/dev/null || true
+log_success "Backend detenido"
+
+# Detener Frontend
+log_info "Deteniendo Frontend..."
+pkill -f "next dev" 2>/dev/null || true
+pkill -f "node.*next" 2>/dev/null || true
+pkill -f "npm run dev" 2>/dev/null || true
+log_success "Frontend detenido"
+
+# Detener Redis
+log_info "Deteniendo Redis..."
+pkill -x redis-server 2>/dev/null || true
+log_success "Redis detenido"
+
+# Detener PostgreSQL (opcional - recomendado mantenerlo)
+# pg_ctl -D "$HOME/../usr/var/lib/postgresql" stop 2>/dev/null || true
+
+echo ""
+log_success "Todos los servicios han sido detenidos"
+echo ""
+echo "💡 Para iniciar nuevamente: bash start.sh"
+echo ""

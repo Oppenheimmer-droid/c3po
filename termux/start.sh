@@ -1,195 +1,213 @@
 #!/bin/bash
-# ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║                    C3PO - SCRIPT DE INICIO COMPLETO                    ║
-# ║                    Para ejecutar después de setup.sh                   ║
-# ╚═══════════════════════════════════════════════════════════════════════════╝
+# =============================================================================
+# C3PO - Start Script
+# =============================================================================
+# Inicia todos los servicios de C3PO (Backend + Frontend)
+#
+# Usage: bash start.sh
+# =============================================================================
 
 set -e
 
 # Colores
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-YELLOW='\033[1;33m'
 RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m'
-BOLD='\033[1m'
 
-# Detectar directorio del script
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-echo -e "${CYAN}"
+echo ""
 echo "╔══════════════════════════════════════════════════════════════════════╗"
-echo "║                    INICIANDO C3PO                                  ║"
-echo "║                    Termux Edition v2.1.0                           ║"
+echo "║                    C3PO - STARTING SERVICES                     ║"
 echo "╚══════════════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
+echo ""
 
-# Verificar que existe el proyecto
-if [ ! -d "$SCRIPT_DIR/backend" ] || [ ! -d "$SCRIPT_DIR/frontend" ]; then
-    echo -e "${RED}✗ Error: No se encontró el proyecto C3PO${NC}"
-    echo "   Ejecuta primero: bash setup.sh"
-    exit 1
-fi
+# Detectar directorio
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+BACKEND_DIR="$PROJECT_DIR/backend"
+FRONTEND_DIR="$PROJECT_DIR/frontend"
+DATA_DIR="$HOME/c3po-data"
 
-# Función para verificar si un servicio está corriendo
-is_running() {
-    pgrep -x "$1" > /dev/null 2>&1
+# =============================================================================
+# Funciones de servicio
+# =============================================================================
+
+start_postgres() {
+    log_info "Iniciando PostgreSQL..."
+    if pg_isready > /dev/null 2>&1; then
+        log_success "PostgreSQL ya está corriendo"
+    else
+        mkdir -p "$HOME/../usr/var/lib/postgresql"
+        nohup pg_ctl -D "$HOME/../usr/var/lib/postgresql" -l "$DATA_DIR/postgres.log" start > /dev/null 2>&1 &
+        sleep 3
+        if pg_isready > /dev/null 2>&1; then
+            log_success "PostgreSQL iniciado"
+        else
+            log_error "Error al iniciar PostgreSQL"
+            return 1
+        fi
+    fi
 }
 
-# 1. Iniciar PostgreSQL
-echo -e "${GREEN}[1/5]${NC} Verificando PostgreSQL..."
-if ! is_running postgres; then
-    echo "   Iniciando PostgreSQL..."
-    if [ ! -d "$HOME/.termux-postgresql" ]; then
-        echo "   Creando cluster de PostgreSQL..."
-        initdb -D "$HOME/.termux-postgresql" > /dev/null 2>&1
+start_redis() {
+    log_info "Iniciando Redis..."
+    if pgrep -x redis-server > /dev/null; then
+        log_success "Redis ya está corriendo"
+    else
+        nohup redis-server --daemonize yes > /dev/null 2>&1 &
+        sleep 2
+        if pgrep -x redis-server > /dev/null; then
+            log_success "Redis iniciado"
+        else
+            log_error "Error al iniciar Redis"
+            return 1
+        fi
     fi
-    pg_ctl -D "$HOME/.termux-postgresql" start 2>/dev/null || \
-    nohup pg_ctl -D "$HOME/.termux-postgresql" start > /tmp/postgres.log 2>&1 &
+}
+
+start_backend() {
+    log_info "Iniciando Backend API..."
+    
+    cd "$BACKEND_DIR"
+    
+    # Configurar variables de entorno
+    export PYTHONPATH="$BACKEND_DIR:$PYTHONPATH"
+    export DATABASE_URL="${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@localhost:5432/c3po}"
+    export DATABASE_URL_SYNC="${DATABASE_URL_SYNC:-postgresql://postgres:postgres@localhost:5432/c3po}"
+    export REDIS_URL="${REDIS_URL:-redis://localhost:6379/0}"
+    export PORT="${PORT:-8000}"
+    export ENVIRONMENT="${ENVIRONMENT:-development}"
+    export DEBUG="${DEBUG:-true}"
+    
+    # Activar venv si existe
+    if [ -f "$BACKEND_DIR/venv/bin/activate" ]; then
+        source "$BACKEND_DIR/venv/bin/activate"
+    fi
+    
+    # Iniciar en background
+    nohup python -m uvicorn app.main:app --host 0.0.0.0 --port "$PORT" --reload > "$DATA_DIR/backend.log" 2>&1 &
+    
     sleep 3
-fi
-echo -e "   ${GREEN}✓${NC} PostgreSQL corriendo"
-
-# 2. Iniciar Redis
-echo -e "${GREEN}[2/5]${NC} Verificando Redis..."
-if ! is_running redis-server; then
-    echo "   Iniciando Redis..."
-    nohup redis-server > /tmp/redis.log 2>&1 &
-    sleep 1
-fi
-echo -e "   ${GREEN}✓${NC} Redis corriendo"
-
-# 3. Iniciar Backend
-echo -e "${GREEN}[3/5]${NC} Iniciando Backend (FastAPI)..."
-cd "$SCRIPT_DIR/backend"
-
-# Verificar que existe el venv
-if [ ! -d "venv" ]; then
-    echo -e "   ${RED}✗ Error: No existe el entorno virtual${NC}"
-    echo "   Ejecuta primero: bash setup.sh"
-    exit 1
-fi
-
-source venv/bin/activate
-export PYTHONPATH="$PWD"
-
-# Verificar si ya está corriendo
-if pgrep -f "uvicorn.*app.main:app" > /dev/null; then
-    echo -e "   ${YELLOW}⚠${NC} Backend ya está corriendo, deteniendo..."
-    pkill -f "uvicorn.*app.main:app" || true
-    sleep 1
-fi
-
-# Iniciar backend en segundo plano
-nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload > /tmp/backend.log 2>&1 &
-BACKEND_PID=$!
-sleep 3
-
-# Verificar que inició
-if ps -p $BACKEND_PID > /dev/null 2>&1; then
-    echo -e "   ${GREEN}✓${NC} Backend iniciado (PID: $BACKEND_PID)"
-else
-    echo -e "   ${RED}✗ Error al iniciar backend${NC}"
-    tail -20 /tmp/backend.log
-    exit 1
-fi
-
-# 4. Iniciar Frontend
-echo -e "${GREEN}[4/5]${NC} Iniciando Frontend (Next.js)..."
-cd "$SCRIPT_DIR/frontend"
-
-# Verificar si ya está corriendo
-if pgrep -f "next dev" > /dev/null; then
-    echo -e "   ${YELLOW}⚠${NC} Frontend ya está corriendo, deteniendo..."
-    pkill -f "next dev" || true
-    sleep 1
-fi
-
-# Iniciar frontend en segundo plano
-nohup npm run dev > /tmp/frontend.log 2>&1 &
-FRONTEND_PID=$!
-sleep 5
-
-# Verificar que inició
-if ps -p $FRONTEND_PID > /dev/null 2>&1; then
-    echo -e "   ${GREEN}✓${NC} Frontend iniciado (PID: $FRONTEND_PID)"
-else
-    echo -e "   ${RED}✗ Error al iniciar frontend${NC}"
-    tail -20 /tmp/frontend.log
-    exit 1
-fi
-
-# 5. Verificar servicios
-echo -e "${GREEN}[5/5]${NC} Verificando servicios..."
-sleep 2
-
-# Check backend health
-BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health 2>/dev/null || echo "000")
-if [ "$BACKEND_STATUS" = "200" ]; then
-    echo -e "   ${GREEN}✓${NC} Backend API: http://localhost:8000 (Saludable)"
-else
-    echo -e "   ${YELLOW}⚠${NC} Backend API: http://localhost:8000 (Estado: $BACKEND_STATUS)"
-fi
-
-echo ""
-echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════════╗"
-echo "║                      ✓ C3PO INICIADO                                   ║"
-echo "╚══════════════════════════════════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "${BOLD}ACCESO:${NC}"
-echo ""
-echo -e "  🌐  Frontend:      ${CYAN}http://localhost:3000${NC}"
-echo -e "  📡  Backend API:   ${CYAN}http://localhost:8000${NC}"
-echo -e "  📖  API Docs:      ${CYAN}http://localhost:8000/docs${NC}"
-echo ""
-echo -e "${BOLD}CREDENCIALES DE PRUEBA:${NC}"
-echo -e "  👤  Admin:        ${CYAN}admin@imaginary.edu${NC}"
-echo -e "  🔐  Contraseña:   ${CYAN}admin123${NC}"
-echo ""
-echo -e "${BOLD}LOGS:${NC}"
-echo -e "  📄  Backend:   tail -f /tmp/backend.log"
-echo -e "  📄  Frontend:  tail -f /tmp/frontend.log"
-echo -e "  📄  Postgres:   cat /tmp/postgres.log"
-echo ""
-echo -e "${YELLOW}Presiona Ctrl+C para detener todos los servicios${NC}"
-echo ""
-
-# Guardar PIDs para limpieza
-echo "$BACKEND_PID" > /tmp/c3po_backend.pid
-echo "$FRONTEND_PID" > /tmp/c3po_frontend.pid
-
-# Función de limpieza
-cleanup() {
-    echo ""
-    echo -e "${CYAN}Deteniendo servicios...${NC}"
     
-    echo "   Deteniendo Backend..."
-    pkill -f "uvicorn.*app.main:app" 2>/dev/null || true
+    # Verificar si inició
+    if curl -sf "http://localhost:$PORT/api/v1/health" > /dev/null 2>&1; then
+        log_success "Backend API iniciado en http://localhost:$PORT"
+        log_info "Documentación API: http://localhost:$PORT/docs"
+    else
+        log_warning "Backend iniciando... (puede tardar unos segundos)"
+    fi
     
-    echo "   Deteniendo Frontend..."
-    pkill -f "next dev" 2>/dev/null || true
-    
-    rm -f /tmp/c3po_backend.pid /tmp/c3po_frontend.pid
-    
-    echo -e "${GREEN}✓ Servicios detenidos${NC}"
-    exit 0
+    cd - > /dev/null
 }
 
-trap cleanup SIGINT SIGTERM
+start_frontend() {
+    log_info "Iniciando Frontend..."
+    
+    cd "$FRONTEND_DIR"
+    
+    # Configurar API URL
+    export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:8000}"
+    export NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-http://localhost:3000}"
+    export NEXT_PUBLIC_WS_URL="${NEXT_PUBLIC_WS_URL:-ws://localhost:8000}"
+    
+    # Iniciar en background
+    nohup npm run dev > "$DATA_DIR/frontend.log" 2>&1 &
+    
+    sleep 5
+    
+    # Verificar si inició
+    if curl -sf "http://localhost:3000" > /dev/null 2>&1; then
+        log_success "Frontend iniciado en http://localhost:3000"
+    else
+        log_warning "Frontend iniciando... (puede tardar unos segundos)"
+    fi
+    
+    cd - > /dev/null
+}
 
-# Mantener el script corriendo y mostrar logs cada 30 segundos
-echo -e "${BOLD}Monitoreando servicios...${NC}"
-while true; do
-    sleep 30
+show_status() {
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════════════"
+    echo "                       SERVICE STATUS                            "
+    echo "═══════════════════════════════════════════════════════════════════════"
+    echo ""
     
-    # Verificar si los procesos siguen corriendo
-    if ! ps -p $BACKEND_PID > /dev/null 2>&1; then
-        echo -e "${RED}⚠ Backend dejó de funcionar${NC}"
-        tail -10 /tmp/backend.log
+    # PostgreSQL
+    if pg_isready > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✓${NC} PostgreSQL"
+    else
+        echo -e "  ${RED}✗${NC} PostgreSQL"
     fi
     
-    if ! ps -p $FRONTEND_PID > /dev/null 2>&1; then
-        echo -e "${RED}⚠ Frontend dejó de funcionar${NC}"
-        tail -10 /tmp/frontend.log
+    # Redis
+    if pgrep -x redis-server > /dev/null; then
+        echo -e "  ${GREEN}✓${NC} Redis"
+    else
+        echo -e "  ${RED}✗${NC} Redis"
     fi
-done
+    
+    # Backend
+    if curl -sf "http://localhost:8000/api/v1/health" > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✓${NC} Backend API (port 8000)"
+    else
+        echo -e "  ${YELLOW}○${NC} Backend API (starting...)"
+    fi
+    
+    # Frontend
+    if curl -sf "http://localhost:3000" > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✓${NC} Frontend (port 3000)"
+    else
+        echo -e "  ${YELLOW}○${NC} Frontend (starting...)"
+    fi
+    
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "🌐 Accesos:"
+    echo "   Frontend:  http://localhost:3000"
+    echo "   Backend:   http://localhost:8000"
+    echo "   API Docs:  http://localhost:8000/docs"
+    echo ""
+    echo "📝 Logs:"
+    echo "   Backend:  tail -f $DATA_DIR/backend.log"
+    echo "   Frontend:  tail -f $DATA_DIR/frontend.log"
+    echo "   PostgreSQL: tail -f $DATA_DIR/postgres.log"
+    echo ""
+    echo "🛑 Para detener: bash stop.sh"
+    echo ""
+}
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+# Crear directorio de datos
+mkdir -p "$DATA_DIR"
+
+# Verificar que el proyecto existe
+if [ ! -d "$BACKEND_DIR" ]; then
+    log_error "Backend no encontrado en $BACKEND_DIR"
+    echo "Ejecuta primero: bash setup.sh"
+    exit 1
+fi
+
+# Iniciar servicios
+echo ""
+log_info "Iniciando servicios..."
+echo ""
+
+start_postgres
+start_redis
+start_backend
+start_frontend
+
+# Mostrar estado
+sleep 2
+show_status
