@@ -25,4 +25,4 @@ jobs:
       - name: Deploy to Vercel Production
         run: |
           npm install -g vercel@latest
-          vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }} --project-dir=frontend
+          vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }} --cwd=frontend
