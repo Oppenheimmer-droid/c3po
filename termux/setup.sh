@@ -70,8 +70,8 @@ log_success "Paquetes instalados"
 # =============================================================================
 echo ""
 log_info "[3/6] Configurando Python..."
-pip install --upgrade pip setuptools wheel 2>/dev/null || true
-pip install --break-system-packages -q virtualenv 2>/dev/null || true
+pip install --upgrade pip setuptools wheel --break-system-packages 2>/dev/null || \
+    pip install --upgrade pip setuptools wheel 2>/dev/null || true
 log_success "Python configurado"
 
 # =============================================================================
@@ -109,24 +109,21 @@ log_info "[5/6] Instalando Backend..."
 
 cd "$BACKEND_DIR"
 
-# Crear entorno virtual
-python -m venv venv 2>/dev/null || python -m virtualenv venv 2>/dev/null || {
-    log_warning "No se pudo crear venv, instalando globalmente..."
-}
+# En Termux, no usamos venv - instalamos directamente con --break-system-packages
+# Esto es necesario porque Termux tiene un sistema de paquetes especial
 
-# Activar entorno virtual
-if [ -f "$BACKEND_DIR/venv/bin/activate" ]; then
-    source "$BACKEND_DIR/venv/bin/activate"
-elif [ -f "$BACKEND_DIR/venv/bin/activate.fish" ]; then
-    source "$BACKEND_DIR/venv/bin/activate.fish"
+# Actualizar pip
+pip install --upgrade pip --break-system-packages 2>/dev/null || pip install --upgrade pip 2>/dev/null || true
+
+# Instalar dependencias con --break-system-packages para Termux
+if pip install -q --break-system-packages -r requirements.txt 2>/dev/null; then
+    log_success "Dependencias instaladas (break-system-packages)"
+elif pip install -q -r requirements.txt --user 2>/dev/null; then
+    log_success "Dependencias instaladas (user mode)"
+else
+    log_warning "Instalando dependencias sin flags especiales..."
+    pip install -q -r requirements.txt || true
 fi
-
-# Instalar dependencias
-pip install --upgrade pip
-pip install -q -r requirements.txt
-
-# Agregar venv bin a PATH
-export PATH="$BACKEND_DIR/venv/bin:$PATH"
 
 # Crear directorio de datos
 mkdir -p ~/../usr/var/lib/postgresql
