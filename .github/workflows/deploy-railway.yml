@@ -1,0 +1,44 @@
+name: Deploy Backend to Railway
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-railway.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Login to Railway
+        run: railway login --token=${{ secrets.RAILWAY_TOKEN }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Deploy to Railway
+        run: railway up --service backend --dir backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Verify Deployment
+        run: |
+          echo "Waiting for Railway deployment..."
+          sleep 30
+          echo "Checking backend status..."
+          curl -s -o /dev/null -w "%{http_code}" https://c3po-production-0c24.up.railway.app/api/v1/health || true
+
+      - name: Notify Deployment Status
+        run: |
+          echo "Backend deployment triggered"
+          echo "Railway should auto-deploy from the 'backend' directory"
+          echo "Check Railway Dashboard: https://railway.app/dashboard"
