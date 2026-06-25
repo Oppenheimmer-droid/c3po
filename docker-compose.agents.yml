@@ -1,6 +1,6 @@
 # ============================================
-# C3PO - Docker Compose Configuration
-# Branch: agents (Optimized for OpenHands)
+# C3PO - Docker Compose for Agents Branch
+# Optimized for autonomous agent development
 # ============================================
 
 version: '3.8'

@@ -209,3 +209,35 @@ c3po/
 └── services/
     └── postgres/             # DB initialization scripts
 ```
+
+## Knowledge Management (Memoria Protocol)
+
+The following fields are used for upserting knowledge:
+- **title**: short searchable
+- **what**: verb + object
+- **why**: motivation
+- **where_at**: files/paths
+- **learned**: gotchas, edge cases
+- **topic_key**: stable ID for upsert
+
+### Session Start
+Call `memoria_session_start` with { project, goal }
+Then call `memoria_context` to get recent memories + last session summary
+
+### During Work — Save Automatically
+Call `memoria_save` after:
+- Bug fixes: type="bug_fix", include root cause in "why"
+- Architecture decisions: type="architecture", topic_key="architecture/<area>"
+- Discoveries: type="discovery" (surprising behavior, undocumented APIs)
+- Patterns: type="pattern" (reusable code patterns we've settled on)
+- User preferences: type="preference"
+- Config changes: type="config"
+
+### Session End
+Call `memoria_session_end` with { session_id, goal, accomplished, discoveries, next_steps, files }
+
+### API Key
+```
+cc_Y0aCF-H5Siy0co51297HDcJmSYrEaom-xWS5ynqBJsQ
+```
+⚠️ **Note**: Cortex MCP tools (memoria_*) are not currently available in this environment. Knowledge persistence uses AGENTS.md file instead.

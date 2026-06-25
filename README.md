@@ -1,53 +1,90 @@
 # C3PO - AI Educational Tutor Platform
 
-A Next.js + FastAPI educational platform with AI-powered tutoring features.
+A Next.js + FastAPI educational platform with AI-powered tutoring features, optimized for autonomous agent development.
 
-## Tech Stack
+## 🚀 Quick Start
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
-- **Backend**: FastAPI, SQLAlchemy, PostgreSQL
-- **Deployment**: Vercel (frontend), Railway (backend)
-
-## Quick Start
-
-### Frontend
 ```bash
-cd frontend
-npm install
-npm run dev
+# Auto-executable setup
+./setup.sh
+
+# Or manual start
+cp .env.example .env
+# Edit .env and add OPENAI_API_KEY
+docker-compose up -d
+
+# Check status
+./start.sh health
 ```
 
-### Backend
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+## 🌟 Features
+
+- **AI-Powered Tutoring**: RAG-based chatbot with ChromaDB
+- **Document Management**: Upload PDF, DOCX, TXT files
+- **Evaluation System**: Track student progress
+- **Multi-tenant**: Role-based access (Admin, Teacher, Student)
+- **Real-time Chat**: WebSocket support
+- **Analytics Dashboard**: Learning metrics
+
+## 🏗️ Architecture
+
+```
+Frontend (Next.js) ──▶ Backend (FastAPI) ──▶ PostgreSQL
+                            │
+                            ▼
+                     ChromaDB + Redis
 ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-├── frontend/          # Next.js application
-│   ├── src/
-│   │   ├── app/      # Pages (dashboard, chat, documents, evaluations)
-│   │   ├── components/  # Reusable components
-│   │   ├── lib/      # Store, utils, API client
-│   │   └── services/ # API service modules
-├── backend/          # FastAPI application
+├── frontend/              # Next.js application
+│   └── src/
+│       ├── app/          # Pages
+│       ├── components/   # UI components
+│       └── services/     # API client
+├── backend/              # FastAPI application
 │   └── app/
-│       ├── api/v1/   # API routes
-│       ├── core/     # Config, security, database
-│       ├── models/   # SQLAlchemy models
-│       ├── schemas/  # Pydantic schemas
-│       └── services/ # Business logic
-└── vercel.json       # Vercel config
+│       ├── api/v1/      # API routes
+│       ├── core/        # Config, security
+│       ├── models/      # SQLAlchemy models
+│       ├── schemas/     # Pydantic schemas
+│       └── services/    # RAG, Chat, Auth
+├── services/postgres/   # DB initialization
+├── docker-compose.yml   # Container orchestration
+├── setup.sh            # First-time setup
+└── start.sh            # Quick start script
 ```
 
-## Environment Variables
+## 🔧 Commands
 
-See `.env.example` for required variables.
+| Command | Description |
+|---------|-------------|
+| `./setup.sh` | First-time setup |
+| `./start.sh` | Start all services |
+| `./start.sh health` | Health check |
+| `./start.sh logs` | View logs |
+| `./start.sh stop` | Stop services |
+| `./start.sh reset` | Reset all data |
 
-## Deployment
+## 🌐 Services
 
-- **Frontend**: Push to main → Vercel auto-deploys
-- **Backend**: Railway auto-deploys from Dockerfile
+| Service | Port | URL |
+|---------|------|-----|
+| Frontend | 3000 | http://localhost:3000 |
+| Backend | 8000 | http://localhost:8000 |
+| API Docs | 8000 | http://localhost:8000/docs |
+| ChromaDB | 8001 | http://localhost:8001 |
+
+## 🤖 OpenHands Agents
+
+This project includes skills for [OpenHands](https://docs.openhands.dev/) agents:
+
+- `.openhands/skills/main.md` - Main skill
+- `.openhands/skills/docker.md` - Docker management
+- `.openhands/skills/backend-dev.md` - Backend development
+- `.openhands/skills/frontend-dev.md` - Frontend development
+
+## 📄 License
+
+MIT License
