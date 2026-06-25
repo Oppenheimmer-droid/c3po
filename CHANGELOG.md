@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-prod] - 2024-06-25
+
+### Added
+- **Production Docker Configuration**
+  - `docker-compose.prod.yml` - Production compose with resources limits
+  - `backend/Dockerfile.prod` - Optimized multi-stage build with uvicorn workers
+  - `frontend/Dockerfile.prod` - Next.js standalone build
+
+- **Production Environment**
+  - `.env.production.example` - Production environment template
+  - `deploy.sh` - Automated deployment script
+  - `deploy/nginx.conf` - Nginx reverse proxy configuration
+
+- **Production Optimizations**
+  - Railway: 2 replicas, 4 uvicorn workers
+  - Vercel: Regional deployment (iad1), security headers
+  - Next.js: Standalone output for Docker
+
+### Changed
+- Updated `railway.json` with `Dockerfile.prod` and production settings
+- Updated `vercel.json` with security headers and regional config
+- Updated `next.config.js` with standalone output
+- Updated `deploy/README.md` with comprehensive deployment guide
+
+### Security
+- Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+- Rate limiting in nginx configuration
+- CORS properly configured for production domains
+- Health checks for all services
+
 ## [1.0.0-agents] - 2024-06-25
 
 ### Added

@@ -1,16 +1,29 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Standalone output for Docker production
+  output: 'standalone',
+  
   images: {
-    domains: ['localhost', 'api.redrive.edu', 'c3po-production-0c24.up.railway.app'],
+    domains: [
+      'localhost', 
+      'api.redrive.edu', 
+      'c3po-production-0c24.up.railway.app',
+      'railway.app',
+      'vercel.app'
+    ],
   },
+  
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://c3po-production-0c24.up.railway.app',
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'https://c3po-frontend.vercel.app',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
   },
+  
   async rewrites() {
     return []
   },
+  
   async headers() {
     return [
       {
@@ -23,6 +36,11 @@ const nextConfig = {
         ],
       },
     ]
+  },
+  
+  // Production optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
   },
 }
 
