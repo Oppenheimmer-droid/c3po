@@ -10,7 +10,7 @@ from sqlalchemy import select, func
 import json
 import logging
 
-from app.core.tenant import get_tenant_context
+from app.core.tenant import get_tenant_context, TenantContext
 from app.core.database import get_db
 from app.services.rag_service import RAGService
 from app.models import ChatSession, ChatMessage, ChatInteractionLog
@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 @router.post("/sessions", response_model=ChatSessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_chat_session(
     session_data: ChatSessionCreate,
+    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new chat session."""
-    ctx = await get_tenant_context()
     session = ChatSession(
         tenant_id=ctx.tenant_id,
         user_id=ctx.user_id,
@@ -48,10 +48,10 @@ async def create_chat_session(
 async def list_chat_sessions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """List chat sessions for the current user."""
-    ctx = await get_tenant_context()
     offset = (page - 1) * page_size
     
     result = await db.execute(
@@ -72,10 +72,10 @@ async def list_chat_sessions(
 @router.get("/sessions/{session_id}", response_model=ChatSessionResponse)
 async def get_chat_session(
     session_id: UUID,
+    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a specific chat session."""
-    ctx = await get_tenant_context()
     result = await db.execute(
         select(ChatSession).where(
             ChatSession.id == session_id,
@@ -96,10 +96,10 @@ async def get_chat_session(
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_chat_session(
     session_id: UUID,
+    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a chat session."""
-    ctx = await get_tenant_context()
     result = await db.execute(
         select(ChatSession).where(
             ChatSession.id == session_id,
@@ -131,10 +131,10 @@ async def delete_chat_session(
 async def send_message(
     session_id: UUID,
     message_data: MessageCreate,
+    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Send a message and get a response."""
-    ctx = await get_tenant_context()
     # Verify session exists and belongs to tenant
     result = await db.execute(
         select(ChatSession).where(
@@ -248,10 +248,10 @@ async def send_message(
 async def get_session_messages(
     session_id: UUID,
     limit: int = Query(50, ge=1, le=100),
+    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Get messages for a chat session."""
-    ctx = await get_tenant_context()
     result = await db.execute(
         select(ChatMessage)
         .where(
@@ -298,10 +298,10 @@ async def query_rag(
     query: str,
     document_ids: Optional[str] = Query(None),  # Comma-separated
     subject_id: Optional[UUID] = Query(None),
+    ctx: TenantContext = Depends(get_tenant_context),
     db: AsyncSession = Depends(get_db),
 ):
     """Simple RAG query endpoint (no session required)."""
-    ctx = await get_tenant_context()
     doc_ids = document_ids.split(",") if document_ids else None
     
     service = RAGService(db)

@@ -1,39 +1,35 @@
-from openai import OpenAI
-from app.services.embeddings import embed_texts
-from app.services.chroma_client import get_collection
+"""
+rag_pipeline.py — Thin compatibility shim.
+Delegates to RAGService which handles AI_PROVIDER selection (Groq / OpenAI).
+Direct OpenAI sync client removed — was blocking the async event loop.
+"""
+import asyncio
 from app.core.roles import ROLES
-import os
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def retrieve_context(query, n=4):
-    col = get_collection()
-    emb = embed_texts([query])[0]
-    res = col.query(query_embeddings=[emb], n_results=n)
-    return res["documents"][0]
 
-def answer_with_role(query, role="matematicas"):
+
+def answer_with_role(query: str, role: str = "matematicas", tenant_id: str = None, user_id: str = None) -> dict:
+    """
+    Synchronous wrapper around RAGService for legacy callers.
+    Uses asyncio.run() — safe only when called from a sync context (e.g. Celery worker).
+    For async FastAPI endpoints use RAGService directly.
+    """
     role_data = ROLES.get(role, ROLES["matematicas"])
-    context = retrieve_context(query)
-    ctx = "\n\n---\n\n".join(context)
 
-    prompt = f"""{role_data['prompt']}
 
-[CONTEXT]
-{ctx}
+    async def _run():
+        from app.services.rag_service import RAGService
+        service = RAGService()
+        result = await service.query(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            query=query,
+            include_history=False,
+            system_prompt_override=role_data.get("prompt"),
+        )
+        return result
 
-[QUESTION]
-{query}
 
-Responde con estilo: {role_data['style']} y tono: {role_data['tone']}."""
-
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "Eres un tutor IA experto."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2
-    )
-
-    return {"query": query, "role": role, "answer": resp.choices[0].message.content}
+    result = asyncio.run(_run())
+    return {"query": query, "role": role, "answer": result.get("answer", "")}
